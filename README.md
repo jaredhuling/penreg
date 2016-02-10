@@ -42,6 +42,12 @@ or by cloning and building
 
 * Incorporate a penalty factor multiplier which is a vector multiplied by the tuning parameter value so that individual variables can have their penalty upweighted, downweighted, or not penalized at all. Could also be used for adaptive lasso, etc
 
+* Make automatic rho choice better in terms of convergence
+
+* Add code to make rho possibly update every 40th iteration
+
+* CHANGE C++ VARIABLE NAMING CONVENTIONS (so the code is more readable)
+
 * After the above are complete, work on group lasso then overlapping group lasso
 
 ## Code Structure
@@ -148,12 +154,12 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr      min        lq     mean   median       uq      max
-##  glmnet[lasso] 1003.499 1143.3527 1256.596 1279.440 1386.728 1469.961
-##    admm[lasso]  714.163  732.8645 1010.916 1160.616 1189.338 1257.600
+##           expr      min       lq      mean    median        uq       max
+##  glmnet[lasso] 981.7864 996.0046 1005.7134 1005.5226 1019.3831 1025.8701
+##    admm[lasso] 790.1676 812.8108  848.5386  860.0116  878.8547  900.8482
 ##  neval cld
-##      5   a
-##      5   a
+##      5   b
+##      5  a
 ```
 
 ```r
@@ -195,13 +201,13 @@ microbenchmark(
 ```
 
 ```
-## Unit: milliseconds
-##           expr       min        lq     mean   median       uq      max
-##  glmnet[lasso]  925.6474  937.1391 1043.951 1053.525 1117.483 1185.960
-##    admm[lasso] 2908.0271 3257.5421 4165.191 3723.119 4772.616 6164.649
-##  neval cld
-##      5  a 
-##      5   b
+## Unit: seconds
+##           expr      min       lq     mean   median       uq      max neval
+##  glmnet[lasso] 1.008885 1.011098 1.059393 1.047027 1.069548 1.160408     5
+##    admm[lasso] 3.331547 3.396025 3.609939 3.466173 3.510766 4.345184     5
+##  cld
+##   a 
+##    b
 ```
 
 ```r
@@ -245,12 +251,12 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq     mean    median        uq       max
-##  glmnet[lasso]  141.2713  145.7542  148.195  146.6712  150.9481  156.3302
-##    admm[lasso] 9085.5060 9159.9400 9255.819 9229.6987 9349.0326 9454.9169
-##  neval cld
-##      5  a 
-##      5   b
+##           expr        min         lq       mean     median         uq
+##  glmnet[lasso]   146.5476   147.9777   154.8754   151.5927   160.4752
+##    admm[lasso] 10399.5843 10754.4585 11103.2582 11416.4629 11457.2786
+##         max neval cld
+##    167.7836     5  a 
+##  11488.5067     5   b
 ```
 
 ```r

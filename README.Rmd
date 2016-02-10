@@ -50,6 +50,12 @@ or by cloning and building
 
 * Incorporate a penalty factor multiplier which is a vector multiplied by the tuning parameter value so that individual variables can have their penalty upweighted, downweighted, or not penalized at all. Could also be used for adaptive lasso, etc
 
+* Make automatic rho choice better in terms of convergence
+
+* Add code to make rho possibly update every 40th iteration
+
+* CHANGE C++ VARIABLE NAMING CONVENTIONS (so the code is more readable)
+
 * After the above are complete, work on group lasso then overlapping group lasso
 
 ## Code Structure

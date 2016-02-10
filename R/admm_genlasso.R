@@ -1,5 +1,66 @@
 
-
+#' Fitting A Generalized Lasso Model Using ADMM Algorithm
+#' 
+#' @description Estimation of a linear model with the lasso penalty. The function
+#' \eqn{\beta} minimizes
+#' \deqn{\frac{1}{2n}\Vert y-X\beta\Vert_2^2+\lambda\Vert\beta\Vert_1}{
+#' 1/(2n) * ||y - X * \beta||_2^2 + \lambda * ||D\beta||_1}
+#' 
+#' where \eqn{n} is the sample size and \eqn{\lambda} is a tuning
+#' parameter that controls the sparseness of \eqn{\beta}.
+#' 
+#' @param x The design matrix
+#' @param y The response vector
+#' @param D The specified penalty matrix 
+#' @param intercept Whether to fit an intercept in the model. Default is \code{FALSE}. 
+#' @param standardize Whether to standardize the design matrix before
+#'                    fitting the model. Default is \code{FALSE}. Fitted coefficients
+#'                    are always returned on the original scale.
+#' @param lambda A user provided sequence of \eqn{\lambda}. If set to
+#'                      \code{NULL}, the program will calculate its own sequence
+#'                      according to \code{nlambda} and \code{lambda_min_ratio},
+#'                      which starts from \eqn{\lambda_0} (with this
+#'                      \eqn{\lambda} all coefficients will be zero) and ends at
+#'                      \code{lambda0 * lambda_min_ratio}, containing
+#'                      \code{nlambda} values equally spaced in the log scale.
+#'                      It is recommended to set this parameter to be \code{NULL}
+#'                      (the default).
+#' @param nlambda Number of values in the \eqn{\lambda} sequence. Only used
+#'                       when the program calculates its own \eqn{\lambda}
+#'                       (by setting \code{lambda = NULL}).
+#' @param lambda_min_ratio Smallest value in the \eqn{\lambda} sequence
+#'                                as a fraction of \eqn{\lambda_0}. See
+#'                                the explanation of the \code{lambda}
+#'                                argument. This parameter is only used when
+#'                                the program calculates its own \eqn{\lambda}
+#'                                (by setting \code{lambda = NULL}). The default
+#'                                value is the same as \pkg{glmnet}: 0.0001 if
+#'                                \code{nrow(x) >= ncol(x)} and 0.01 otherwise.
+#' @param maxit Maximum number of admm iterations.
+#' @param abs.tol Absolute tolerance parameter.
+#' @param rel.tol Relative tolerance parameter.
+#' @param rho ADMM step size parameter. If set to \code{NULL}, the program
+#'                   will compute a default one which has good convergence properties.
+#' @references 
+#' \url{https://projecteuclid.org/euclid.aos/1304514656}
+#' 
+#' \url{http://stanford.edu/~boyd/admm.html}
+#' @examples set.seed(123)
+#' n = 1000
+#' p = 50
+#' b = c(runif(10), rep(0, p - 10))
+#' x = matrix(rnorm(n * p, sd = 3), n, p)
+#' y = drop(x %*% b) + rnorm(n)
+#' 
+#' D <- c(1, -1, rep(0, p - 2))
+#' for (i in 1:20) {D <- rbind(D, c(rep(0, 2 * i), 1, -1, rep(0, p - 2 - 2 * i)))}
+#' D <- rbind(D, diag(p))
+#' 
+#' ## fit lasso model with 100 tuning parameter values
+#' res <- admm.genlasso(x, y, D = D)
+#' 
+#' 
+#' @export
 admm.genlasso <- function(x, 
                           y, 
                           D                = NULL,

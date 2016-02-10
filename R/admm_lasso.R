@@ -15,15 +15,7 @@
 #' @param standardize Whether to standardize the design matrix before
 #'                    fitting the model. Default is \code{FALSE}. Fitted coefficients
 #'                    are always returned on the original scale.
-#' @section Setting Penalty Parameter:
-#' The penalty parameter \eqn{\lambda} can be set through the member function
-#' \code{$penalty()}, with the usage and parameters given below:
-#' 
-#' \preformatted{    model$penalty(lambda = NULL, nlambda = 100, lambda_min_ratio, ...)
-#' }
-#' 
-#' \describe{
-#' \item{\code{lambda}}{A user provided sequence of \eqn{\lambda}. If set to
+#' @param lambda A user provided sequence of \eqn{\lambda}. If set to
 #'                      \code{NULL}, the program will calculate its own sequence
 #'                      according to \code{nlambda} and \code{lambda_min_ratio},
 #'                      which starts from \eqn{\lambda_0} (with this
@@ -31,30 +23,26 @@
 #'                      \code{lambda0 * lambda_min_ratio}, containing
 #'                      \code{nlambda} values equally spaced in the log scale.
 #'                      It is recommended to set this parameter to be \code{NULL}
-#'                      (the default).}
-#' \item{\code{nlambda}}{Number of values in the \eqn{\lambda} sequence. Only used
+#'                      (the default).
+#' @param nlambda Number of values in the \eqn{\lambda} sequence. Only used
 #'                       when the program calculates its own \eqn{\lambda}
-#'                       (by setting \code{lambda = NULL}).}
-#' \item{\code{lambda_min_ratio}}{Smallest value in the \eqn{\lambda} sequence
+#'                       (by setting \code{lambda = NULL}).
+#' @param lambda_min_ratio Smallest value in the \eqn{\lambda} sequence
 #'                                as a fraction of \eqn{\lambda_0}. See
 #'                                the explanation of the \code{lambda}
 #'                                argument. This parameter is only used when
 #'                                the program calculates its own \eqn{\lambda}
 #'                                (by setting \code{lambda = NULL}). The default
 #'                                value is the same as \pkg{glmnet}: 0.0001 if
-#'                                \code{nrow(x) >= ncol(x)} and 0.01 otherwise.}
-#' }
+#'                                \code{nrow(x) >= ncol(x)} and 0.01 otherwise.
+#' @param maxit Maximum number of admm iterations.
+#' @param abs.tol Absolute tolerance parameter.
+#' @param rel.tol Relative tolerance parameter.
+#' @param rho ADMM step size parameter. If set to \code{NULL}, the program
+#'                   will compute a default one which has good convergence properties.
 #' 
-#' 
-#' \describe{
-#' \item{\code{maxit}}{Maximum number of iterations.}
-#' \item{\code{eps_abs}}{Absolute tolerance parameter.}
-#' \item{\code{eps_rel}}{Relative tolerance parameter.}
-#' \item{\code{rho}}{ADMM step size parameter. If set to \code{NULL}, the program
-#'                   will compute a default one.}
-#' }
-#' 
-#' 
+#' @references 
+#' \url{http://stanford.edu/~boyd/admm.html}
 #' @examples set.seed(123)
 #' n = 1000
 #' p = 50

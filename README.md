@@ -3,7 +3,7 @@
 
 ## Introduction
 
-
+Based on the following package: https://github.com/yixuan/ADMM
 
 ## Goals
 

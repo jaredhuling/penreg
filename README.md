@@ -10,7 +10,9 @@ Based on the following package: https://github.com/yixuan/ADMM
 
 Install using the **devtools** package:
 
-#devtools::install_github("jaredhuling/penreg")
+```r
+devtools::install_github("jaredhuling/penreg")
+```
 
 or by cloning and building 
 
@@ -42,7 +44,7 @@ or by cloning and building
 
 * After the above are complete, work on group lasso then overlapping group lasso
 
-## Structure
+## Code Structure
 
 Each routine (ie lasso, group lasso, genlasso, etc) should have the following files:
 
@@ -146,12 +148,12 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr      min       lq     mean   median       uq      max neval
-##  glmnet[lasso] 941.2123 942.2907 954.5641 952.7648 962.8016 973.7510     5
-##    admm[lasso] 697.8856 716.0743 720.8027 716.2630 716.6273 757.1631     5
-##  cld
-##    b
-##   a
+##           expr      min        lq     mean   median       uq      max
+##  glmnet[lasso] 1003.499 1143.3527 1256.596 1279.440 1386.728 1469.961
+##    admm[lasso]  714.163  732.8645 1010.916 1160.616 1189.338 1257.600
+##  neval cld
+##      5   a
+##      5   a
 ```
 
 ```r
@@ -194,9 +196,9 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq     mean    median        uq       max
-##  glmnet[lasso]  900.2719  902.4733  915.265  911.5501  917.0822  944.9476
-##    admm[lasso] 2718.9199 2745.9718 2838.768 2860.8227 2929.9543 2938.1690
+##           expr       min        lq     mean   median       uq      max
+##  glmnet[lasso]  925.6474  937.1391 1043.951 1053.525 1117.483 1185.960
+##    admm[lasso] 2908.0271 3257.5421 4165.191 3723.119 4772.616 6164.649
 ##  neval cld
 ##      5  a 
 ##      5   b
@@ -243,9 +245,9 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq      mean    median        uq       max
-##  glmnet[lasso]  139.4291  140.0982  141.9179  140.6603  144.4358  144.9663
-##    admm[lasso] 8889.6959 9086.5450 9210.5291 9111.2731 9394.7879 9570.3437
+##           expr       min        lq     mean    median        uq       max
+##  glmnet[lasso]  141.2713  145.7542  148.195  146.6712  150.9481  156.3302
+##    admm[lasso] 9085.5060 9159.9400 9255.819 9229.6987 9349.0326 9454.9169
 ##  neval cld
 ##      5  a 
 ##      5   b

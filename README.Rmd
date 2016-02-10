@@ -18,7 +18,9 @@ Based on the following package: https://github.com/yixuan/ADMM
 
 Install using the **devtools** package:
 
-#devtools::install_github("jaredhuling/penreg")
+```r
+devtools::install_github("jaredhuling/penreg")
+```
 
 or by cloning and building 
 

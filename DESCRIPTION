@@ -10,6 +10,11 @@ Description: Solving statistical optimization problems using the
     that have already been implemented by this package include Lasso,
     Elastic Net, Dantzig Selector, Basis Pursuit, Least Absolute Deviation etc.
 License: GPL (>= 2)
-Depends: methods
-Imports: Rcpp (>= 0.11.0), Matrix, ggplot2
+Depends:
+    methods
+Imports:
+    Rcpp (>= 0.11.0),
+    Matrix,
+    ggplot2
 LinkingTo: Rcpp, RcppEigen
+RoxygenNote: 5.0.1

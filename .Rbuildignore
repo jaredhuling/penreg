@@ -1,2 +1,4 @@
+.gitignore
 ^.*\.Rproj$
 ^\.Rproj\.user$
+*.html

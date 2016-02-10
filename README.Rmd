@@ -9,19 +9,55 @@ library(knitr)
 opts_chunk$set(message = FALSE)
 ```
 
+
+
+
 ## Introduction
 
-`ADMM` is an R package that utilizes the Alternating Direction Method of Multipliers
-(ADMM) algorithm to solve a broad range of statistical optimization problems.
-Presently the models that `ADMM` has implemented include Lasso, Elastic Net,
-Least Absolute Deviation and Basis Pursuit.
+Based on the following package: https://github.com/yixuan/ADMM
+
+## Goals
+
+* have capabilities for a wide range of penalties (lasso, group lasso, generalized lasso, overlapping group lasso, ridge) and combinations of them
+
+* have capabilities for multiple models with any of the above penalties (gaussian, binomial, cox PH, etc)
+
+* have capabilities for wide and tall data as well as sparse and dense matrices
+
+* have some sort of unified interface to the fitting functions
+
+* make the code as easily generalizable as possible
+
+## Structure
+
+Each routine (ie lasso, group lasso, genlasso, etc) should have the following files:
+
+* **fitting_function.R** This function (see admm.lasso, admm.genlasso) is a wrapper for the c++ functions. This should return a class related to the routine type (ie class = "admm.genlasso"). This function should have the proper roxygen description commented directly above its definition. Make sure to use **@export** in order for it to be included in the namespace. When building the package in rstudio, make sure roxygen is used.
+
+* **predict.R** This function will be used for predicting based off of a model created from the above file. There should be one predict function for each fitting_function.R for example if admm.genlasso.R returns an object of type "admm.genlasso", then a function called predict.admm.genlasso.R should be created
+
+* possibly more .R functions for each class (plot, summary, etc)
+
+* **fittin_function.cpp** This file will contain a function to be directly called by R. examples include lasso.cpp and genlasso.cpp. It's primary job is to set up the data and then call the appropriate solver for each value of the tuning parameter
+
+* **fitting_function_tall.h** This file is the routine which solves the optimization problem for data with nrow(x) > ncol(x) with admm (or even potentially some other algorithm). Typically with ADMM, high dimensional settings and low dimensional settings should be implemented differently for efficiency. 
+
+* **fitting_function_wide.h** Same as the above but for high dimensional settings
+
+* **fitting_function_sparse.cpp** and **fitting_function_tall_sparse.h** and **fitting_function_wide_sparse.h** Unless I figure out how to handle matrix types generically, when the x matrix itself is sparse I think code must be treated differently. ie we would need to set the data variable to be an Eigen::SparseMatrix<double> instead of an Eigen::MatrixXd. It is possible this can be handled with a generic type and then maybe we don't need extra files for sparse matrices.
+
+The following files are more general:
+
+* **DataStd.h** this centers/standardizes the data and provides code to recover the coefficients after fittin
+
+* **FADMMBase.h** and/or **ADMMBase.h** these files set up the general class structure for admm problems. One of these two files will generally be used by the **fitting.h** files, for example, **FADMMBase.h** is used by **ADMMLassoTall.h** and **ADMMGenLassoTall.h** and **ADMMBase.h** is used by **ADMMLassoWide.h**. These files set up a class structure which is quite general. They **may** need to be modified in the future for problems that involve Newton-type iterations
 
 ## Models
 
 ### Lasso
 ```{r lasso}
 library(glmnet)
-library(ADMM)
+library(penreg)
 set.seed(123)
 n <- 100
 p <- 20
@@ -30,92 +66,46 @@ b <- matrix(c(runif(m), rep(0, p - m)))
 x <- matrix(rnorm(n * p, mean = 1.2, sd = 2), n, p)
 y <- 5 + x %*% b + rnorm(n)
 
-fit <- glmnet(x, y)
-out_glmnet <- coef(fit, s = exp(-2), exact = TRUE)
-out_admm <- admm_lasso(x, y)$penalty(exp(-2))$fit()
-out_paradmm <- admm_lasso(x, y)$penalty(exp(-2))$parallel()$fit()
+fit         <- glmnet(x, y)
+glmnet_coef <- coef(fit)[,floor(length(fit$lambda/2))]
+admm.res    <- admm.lasso(x, y, standardize = TRUE, intercept = TRUE)
+admm_coef   <- admm.res$beta[,floor(length(fit$lambda/2))]
 
-data.frame(glmnet = as.numeric(out_glmnet),
-           admm = as.numeric(out_admm$beta),
-           paradmm = as.numeric(out_paradmm$beta))
+data.frame(glmnet = as.numeric(glmnet_coef),
+           admm = as.numeric(admm_coef))
 ```
-
-### Elastic Net
-```{r enet}
-fit <- glmnet(x, y, alpha = 0.5)
-out_glmnet <- coef(fit, s = exp(-2), exact = TRUE)
-out_admm <- admm_enet(x, y)$penalty(exp(-2), alpha = 0.5)$fit()
-data.frame(glmnet = as.numeric(out_glmnet),
-           admm = as.numeric(out_admm$beta))
-```
-
-### Least Absolute Deviation
-Least Absolute Deviation (LAD) minimizes `||y - Xb||_1` instead of
-`||y - Xb||_2^2` (OLS), and is equivalent to median regression.
-
-```{r lad}
-library(quantreg)
-out_rq <- rq.fit(x, y)
-out_admm <- admm_lad(x, y, intercept = FALSE)$fit()
-
-data.frame(rq_br = out_rq$coefficients,
-           admm = out_admm$beta[-1])
-```
-
-### Basis Pursuit
-```{r bp}
-set.seed(123)
-n <- 50
-p <- 100
-nsig <- 15
-beta_true <- c(runif(nsig), rep(0, p - nsig))
-beta_true <- sample(beta_true)
-
-x <- matrix(rnorm(n * p), n, p)
-y <- drop(x %*% beta_true)
-out_admm <- admm_bp(x, y)$fit()
-
-range(beta_true - out_admm$beta)
-```
-
 
 ## Performance
 
-### Lasso and Elastic Net
+### Lasso
 
 ```{r}
 library(microbenchmark)
-library(ADMM)
+library(penreg)
 library(glmnet)
 # compute the full solution path, n > p
 set.seed(123)
 n <- 10000
-p <- 1000
-m <- 100
+p <- 500
+m <- 50
 b <- matrix(c(runif(m), rep(0, p - m)))
-x <- matrix(rnorm(n * p, sd = 2), n, p)
+x <- matrix(rnorm(n * p, sd = 3), n, p)
 y <- x %*% b + rnorm(n)
 
-lambdas1 = glmnet(x, y)$lambda
-lambdas2 = glmnet(x, y, alpha = 0.6)$lambda
+lambdas = glmnet(x, y)$lambda
 
 microbenchmark(
-    "glmnet[lasso]" = {res1 <- glmnet(x, y)},
-    "admm[lasso]"   = {res2 <- admm_lasso(x, y)$penalty(lambdas1)$fit()},
-    "padmm[lasso]"  = {res3 <- admm_lasso(x, y)$penalty(lambdas1)$parallel()$fit()},
-    "glmnet[enet]"  = {res4 <- glmnet(x, y, alpha = 0.6)},
-    "admm[enet]"    = {res5 <- admm_enet(x, y)$penalty(lambdas2, alpha = 0.6)$fit()},
+    "glmnet[lasso]" = {res1 <- glmnet(x, y, thresh = 1e-10)}, # thresh must be very low for glmnet to be accurate
+    "admm[lasso]"   = {res2 <- admm.lasso(x, y, lambda = lambdas, 
+                                          intercept = TRUE, standardize = TRUE,
+                                          abs.tol = 1e-8, rel.tol = 1e-8)},
     times = 5
 )
 
 # difference of results
-diffs = matrix(0, 3, 2)
-rownames(diffs) = c("glmnet-admm [lasso]", "glmnet-padmm[lasso]", "glmnet-admm [enet]")
-colnames(diffs) = c("min", "max")
-diffs[1, ] = range(coef(res1) - res2$beta)
-diffs[2, ] = range(coef(res1) - res3$beta)
-diffs[3, ] = range(coef(res4) - res5$beta)
-diffs
+max(abs(coef(res1) - res2$beta))
+mean(abs(coef(res1) - res2$beta))
+
 
 # p > n
 set.seed(123)
@@ -126,92 +116,42 @@ b <- matrix(c(runif(m), rep(0, p - m)))
 x <- matrix(rnorm(n * p, sd = 2), n, p)
 y <- x %*% b + rnorm(n)
 
-lambdas1 = glmnet(x, y)$lambda
-lambdas2 = glmnet(x, y, alpha = 0.6)$lambda
+lambdas = glmnet(x, y)$lambda
 
 microbenchmark(
-    "glmnet[lasso]" = {res1 <- glmnet(x, y)},
-    "admm[lasso]"   = {res2 <- admm_lasso(x, y)$penalty(lambdas1)$fit()},
-    "padmm[lasso]"  = {res3 <- admm_lasso(x, y)$penalty(lambdas1)$parallel()$fit()},
-    "glmnet[enet]"  = {res4 <- glmnet(x, y, alpha = 0.6)},
-    "admm[enet]"    = {res5 <- admm_enet(x, y)$penalty(lambdas2, alpha = 0.6)$fit()},
+    "glmnet[lasso]" = {res1 <- glmnet(x, y, thresh = 1e-14)},
+    "admm[lasso]"   = {res2 <- admm.lasso(x, y, lambda = lambdas, 
+                                          intercept = TRUE, standardize = TRUE,
+                                          abs.tol = 1e-9, rel.tol = 1e-9)},
     times = 5
 )
 
 # difference of results
-diffs[1, ] = range(coef(res1) - res2$beta)
-diffs[2, ] = range(coef(res1) - res3$beta)
-diffs[3, ] = range(coef(res4) - res5$beta)
-diffs
-```
+max(abs(coef(res1) - res2$beta))
+mean(abs(coef(res1) - res2$beta))
 
-### LAD
 
-```{r}
-library(ADMM)
-library(quantreg)
-
+# p >> n
+# ADMM is clearly not well-suited for this setting
 set.seed(123)
-n <- 1000
-p <- 500
-b <- runif(p)
-x <- matrix(rnorm(n * p, sd = 2), n, p)
-y <- x %*% b + rnorm(n)
-
-microbenchmark(
-    "quantreg[br]" = {res1 <- rq.fit(x, y)},
-    "quantreg[fn]" = {res2 <- rq.fit(x, y, method = "fn")},
-    "admm"         = {res3 <- admm_lad(x, y, intercept = FALSE)$fit()},
-    times = 5
-)
-
-# difference of results
-range(res1$coefficients - res3$beta[-1])
-
-set.seed(123)
-n <- 5000
-p <- 1000
-b <- runif(p)
-x <- matrix(rnorm(n * p, sd = 2), n, p)
-y <- x %*% b + rnorm(n)
-
-microbenchmark(
-    "quantreg[fn]" = {res1 <- rq.fit(x, y, method = "fn")},
-    "admm"         = {res2 <- admm_lad(x, y, intercept = FALSE)$fit()},
-    times = 5
-)
-
-# difference of results
-range(res1$coefficients - res2$beta[-1])
-
-```
-
-### Basis Pursuit
-
-```{r}
-set.seed(123)
-n <- 1000
+n <- 100
 p <- 2000
-nsig <- 100
-beta_true <- c(runif(nsig), rep(0, p - nsig))
-beta_true <- sample(beta_true)
-x <- matrix(rnorm(n * p), n, p)
-y <- drop(x %*% beta_true)
+m <- 10
+b <- matrix(c(runif(m), rep(0, p - m)))
+x <- matrix(rnorm(n * p, sd = 2), n, p)
+y <- x %*% b + rnorm(n)
 
-system.time(out_admm <- admm_bp(x, y)$fit())
-range(beta_true - out_admm$beta)
+lambdas = glmnet(x, y)$lambda
 
+microbenchmark(
+    "glmnet[lasso]" = {res1 <- glmnet(x, y, thresh = 1e-12)},
+    "admm[lasso]"   = {res2 <- admm.lasso(x, y, lambda = lambdas, 
+                                          intercept = TRUE, standardize = TRUE,
+                                          abs.tol = 1e-9, rel.tol = 1e-9)},
+    times = 5
+)
 
-set.seed(123)
-n <- 1000
-p <- 10000
-nsig <- 200
-beta_true <- c(runif(nsig), rep(0, p - nsig))
-beta_true <- sample(beta_true)
-x <- matrix(rnorm(n * p), n, p)
-y <- drop(x %*% beta_true)
-
-system.time(out_admm <- admm_bp(x, y)$fit())
-range(beta_true - out_admm$beta)
+# difference of results
+max(abs(coef(res1) - res2$beta))
+mean(abs(coef(res1) - res2$beta))
 ```
-

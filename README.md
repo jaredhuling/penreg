@@ -8,6 +8,12 @@
 
 Based on the following package: https://github.com/yixuan/ADMM
 
+Install using the **devtools** package:
+
+#devtools::install_github("jaredhuling/penreg")
+
+or by cloning and building 
+
 ## Goals
 
 * have capabilities for a wide range of penalties (lasso, group lasso, generalized lasso, overlapping group lasso, ridge) and combinations of them
@@ -19,6 +25,22 @@ Based on the following package: https://github.com/yixuan/ADMM
 * have some sort of unified interface to the fitting functions
 
 * make the code as easily generalizable as possible
+
+## Current Problems
+
+* How to best organize code for ADMM algorithm fo fitting multiple penalties at once?
+
+* How to best organize code for fitting different models with penalties. linear models are simple, but what about binomial and other nonlinear models. Is ADMM best or should we use Newton iterations with ADMM on the inside fitting weighted penalize least squares models
+
+* How to best incorporate sparse design matrices (ie when x itself is sparse). Standardization of the data cannot be used for this case, because it will ruin the sparsity of the matrix
+
+## Immediate to-do list
+
+* Incorporate weighting of observations for lasso and genlasso
+
+* Incorporate a penalty factor multiplier which is a vector multiplied by the tuning parameter value so that individual variables can have their penalty upweighted, downweighted, or not penalized at all. Could also be used for adaptive lasso, etc
+
+* After the above are complete, work on group lasso then overlapping group lasso
 
 ## Structure
 
@@ -125,8 +147,8 @@ microbenchmark(
 ```
 ## Unit: milliseconds
 ##           expr      min       lq     mean   median       uq      max neval
-##  glmnet[lasso] 961.6115 969.0233 976.1328 980.6461 983.3776 986.0053     5
-##    admm[lasso] 711.1852 718.0491 770.7554 755.2538 822.1528 847.1359     5
+##  glmnet[lasso] 941.2123 942.2907 954.5641 952.7648 962.8016 973.7510     5
+##    admm[lasso] 697.8856 716.0743 720.8027 716.2630 716.6273 757.1631     5
 ##  cld
 ##    b
 ##   a
@@ -172,9 +194,9 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq      mean    median        uq      max
-##  glmnet[lasso]  902.2262  904.9131  957.8504  963.9428  990.6864 1027.483
-##    admm[lasso] 2723.0661 2875.8591 3082.1243 2988.4968 3234.1943 3589.005
+##           expr       min        lq     mean    median        uq       max
+##  glmnet[lasso]  900.2719  902.4733  915.265  911.5501  917.0822  944.9476
+##    admm[lasso] 2718.9199 2745.9718 2838.768 2860.8227 2929.9543 2938.1690
 ##  neval cld
 ##      5  a 
 ##      5   b
@@ -221,12 +243,12 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq       mean    median         uq
-##  glmnet[lasso]  140.8754  145.7807   155.7966  155.3603   159.9597
-##    admm[lasso] 9019.6969 9041.6300 10230.7165 9685.1193 10735.5012
-##         max neval cld
-##    177.0068     5  a 
-##  12671.6350     5   b
+##           expr       min        lq      mean    median        uq       max
+##  glmnet[lasso]  139.4291  140.0982  141.9179  140.6603  144.4358  144.9663
+##    admm[lasso] 8889.6959 9086.5450 9210.5291 9111.2731 9394.7879 9570.3437
+##  neval cld
+##      5  a 
+##      5   b
 ```
 
 ```r

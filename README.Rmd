@@ -16,6 +16,12 @@ opts_chunk$set(message = FALSE)
 
 Based on the following package: https://github.com/yixuan/ADMM
 
+Install using the **devtools** package:
+
+#devtools::install_github("jaredhuling/penreg")
+
+or by cloning and building 
+
 ## Goals
 
 * have capabilities for a wide range of penalties (lasso, group lasso, generalized lasso, overlapping group lasso, ridge) and combinations of them
@@ -28,7 +34,23 @@ Based on the following package: https://github.com/yixuan/ADMM
 
 * make the code as easily generalizable as possible
 
-## Structure
+## Current Problems
+
+* How to best organize code for ADMM algorithm fo fitting multiple penalties at once?
+
+* How to best organize code for fitting different models with penalties. linear models are simple, but what about binomial and other nonlinear models. Is ADMM best or should we use Newton iterations with ADMM on the inside fitting weighted penalize least squares models
+
+* How to best incorporate sparse design matrices (ie when x itself is sparse). Standardization of the data cannot be used for this case, because it will ruin the sparsity of the matrix
+
+## Immediate to-do list
+
+* Incorporate weighting of observations for lasso and genlasso
+
+* Incorporate a penalty factor multiplier which is a vector multiplied by the tuning parameter value so that individual variables can have their penalty upweighted, downweighted, or not penalized at all. Could also be used for adaptive lasso, etc
+
+* After the above are complete, work on group lasso then overlapping group lasso
+
+## Code Structure
 
 Each routine (ie lasso, group lasso, genlasso, etc) should have the following files:
 

@@ -1,0 +1,15 @@
+useDynLib(penreg)
+import(methods)
+import(Rcpp)
+import(ggplot2)
+
+importClassesFrom(Matrix, dgCMatrix)
+importMethodsFrom(Matrix, dim, as.matrix, coerce)
+
+export(admm_lasso)
+export(admm.lasso)
+export(admm.genlasso)
+export(admm_enet)
+export(admm_lad)
+export(admm_bp)
+export(admm_dantzig)

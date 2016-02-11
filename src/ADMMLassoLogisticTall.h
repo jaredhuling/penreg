@@ -72,6 +72,7 @@ protected:
     }
     void next_x(Vector &res)
     {
+        // need to change this part
         Vector rhs = XY - adj_y;
         // rhs += rho * adj_z;
 

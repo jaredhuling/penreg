@@ -40,8 +40,12 @@ protected:
     const SpMat D;
     
     Vector XY;                    // X'Y
+    MatrixXd XX;                  // X'X
+    SpMat DD;                     // D'D
     VectorXd Dbeta;               // D * beta
+    VectorXd savedEigs;           // saved eigenvalues
     LLT solver;                   // matrix factorization
+    bool rho_unspecified;          // was rho unspecified? if so, we must set it
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
@@ -182,6 +186,8 @@ public:
               datY(datY_.data(), datY_.size()),
               D(D_),
               XY(datX.transpose() * datY),
+              XX(XtX(datX)),
+              DD(XtX(D)),
               Dbeta(D_.rows()),
               lambda0(XY.cwiseAbs().maxCoeff())
     {}
@@ -201,41 +207,45 @@ public:
         lambda = lambda_;
         rho = rho_;
         
-        // Pre-Compute X'X
-        MatrixXd XX(XtX(datX));
         
-        // Pre-Compute D'D
-        SpMat DD(XtX(D));
         
         //Linalg::cross_prod_lower(XX, datX);
         
         if(rho <= 0)
         {
+            rho_unspecified = true;
             MatOpSymLower<Double> op(XX);
             //Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
             Spectra::SymEigsSolver< Double, Spectra::BOTH_ENDS, MatOpSymLower<Double> > eigs(&op, 2, 5);
             srand(0);
             eigs.init();
-            eigs.compute(500, 0.05);
+            eigs.compute(1000, 0.01);
             Vector evals = eigs.eigenvalues();
+            savedEigs = evals;
+            
+            float lam_fact = datX.rows() * lambda;
             //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
-            if (lambda < evals[1])
+            if (lam_fact < evals[1])
             {
-                rho = std::sqrt(evals[1] * std::pow(lambda, 1.35));
-            } else if (lambda > evals[0])
+                rho = std::sqrt(evals[1] * std::pow(lam_fact, 1.35));
+            } else if (lam_fact > evals[0])
             {
-                rho = std::sqrt(evals[0] * std::pow(lambda, 1.35));
+                rho = std::sqrt(evals[0] * std::pow(lam_fact, 1.35));
             } else 
             {
-                rho = std::pow(lambda, 1.25);
+                rho = std::pow(lam_fact, 1.05);
             }
+        } else {
+            rho_unspecified = false;
         }
         
         //XX.diagonal().array() += rho;
-        XX += rho * DD;
+        
+        MatrixXd matToSolve(XX);
+        matToSolve += rho * DD;
         
         // precompute LLT decomposition of (X'X + rho * D'D)
-        solver.compute(XX.selfadjointView<Eigen::Lower>());
+        solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
         
         eps_primal = 0.0;
         eps_dual = 0.0;
@@ -253,6 +263,29 @@ public:
     {
         lambda = lambda_;
         
+        if (rho_unspecified)
+        {
+            float lam_fact = lambda;
+            //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+            if (lam_fact < savedEigs[1])
+            {
+                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 4, 1.35));
+            } else if (lam_fact * 0.25 > savedEigs[0])
+            {
+                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 0.25, 1.35));
+            } else 
+            {
+                rho = std::pow(lam_fact, 1.05);
+            }
+            
+        }
+        
+        MatrixXd matToSolve(XX);
+        matToSolve += rho * DD;
+        
+        // precompute LLT decomposition of (X'X + rho * D'D)
+        solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
+        
         eps_primal = 0.0;
         eps_dual = 0.0;
         resid_primal = 9999;
@@ -260,6 +293,7 @@ public:
         
         // adj_a = 1.0;
         // adj_c = 9999;
+        rho_changed_action();
     }
 };
 

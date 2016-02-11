@@ -212,12 +212,23 @@ public:
         if(rho <= 0)
         {
             MatOpSymLower<Double> op(XX);
-            Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
+            //Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
+            Spectra::SymEigsSolver< Double, Spectra::BOTH_ENDS, MatOpSymLower<Double> > eigs(&op, 2, 5);
             srand(0);
             eigs.init();
-            eigs.compute(100, 0.1);
+            eigs.compute(500, 0.05);
             Vector evals = eigs.eigenvalues();
-            rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+            //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+            if (lambda < evals[1])
+            {
+                rho = std::sqrt(evals[1] * std::pow(lambda, 1.35));
+            } else if (lambda > evals[0])
+            {
+                rho = std::sqrt(evals[0] * std::pow(lambda, 1.35));
+            } else 
+            {
+                rho = std::pow(lambda, 1.25);
+            }
         }
         
         //XX.diagonal().array() += rho;

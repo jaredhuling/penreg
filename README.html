@@ -186,12 +186,12 @@ microbenchmark(
     times = 5
 )</code></pre>
 <pre><code>## Unit: milliseconds
-##           expr       min        lq      mean    median       uq       max
-##  glmnet[lasso] 1143.1889 1159.3408 1163.3919 1161.7135 1166.265 1186.4519
-##    admm[lasso]  881.0541  884.7235  899.4944  897.2558  913.022  921.4167
-##  neval cld
-##      5   b
-##      5  a</code></pre>
+##           expr      min       lq     mean   median       uq      max neval
+##  glmnet[lasso] 877.3851 924.8473 927.9810 934.3748 937.4798 965.8181     5
+##    admm[lasso] 644.4346 648.0484 669.1382 656.2429 679.4984 717.4669     5
+##  cld
+##    b
+##   a</code></pre>
 <pre class="r"><code># difference of results
 max(abs(coef(res1) - res2$beta))</code></pre>
 <pre><code>## [1] 6.600234e-07</code></pre>
@@ -215,18 +215,18 @@ microbenchmark(
                                           abs.tol = 1e-9, rel.tol = 1e-9)},
     times = 5
 )</code></pre>
-<pre><code>## Unit: seconds
-##           expr      min       lq     mean   median       uq      max neval
-##  glmnet[lasso] 1.089723 1.095534 1.106499 1.106744 1.119645 1.120848     5
-##    admm[lasso] 3.531968 3.567362 3.570156 3.580897 3.584534 3.586018     5
-##  cld
-##   a 
-##    b</code></pre>
+<pre><code>## Unit: milliseconds
+##           expr       min        lq      mean    median        uq       max
+##  glmnet[lasso]  817.5585  818.0046  826.8458  825.4685  828.7929  844.4044
+##    admm[lasso] 2314.5491 2315.1116 2325.6514 2328.0003 2330.2637 2340.3324
+##  neval cld
+##      5  a 
+##      5   b</code></pre>
 <pre class="r"><code># difference of results
 max(abs(coef(res1) - res2$beta))</code></pre>
-<pre><code>## [1] 1.30693e-06</code></pre>
+<pre><code>## [1] 1.307248e-06</code></pre>
 <pre class="r"><code>mean(abs(coef(res1) - res2$beta))</code></pre>
-<pre><code>## [1] 5.720588e-09</code></pre>
+<pre><code>## [1] 5.714507e-09</code></pre>
 <pre class="r"><code># p &gt;&gt; n
 # ADMM is clearly not well-suited for this setting
 set.seed(123)
@@ -247,17 +247,17 @@ microbenchmark(
     times = 5
 )</code></pre>
 <pre><code>## Unit: milliseconds
-##           expr       min         lq       mean    median         uq
-##  glmnet[lasso]   172.634   175.7157   182.0178   185.872   186.9852
-##    admm[lasso] 11223.043 11282.1830 11333.7936 11321.160 11413.5300
-##         max neval cld
-##    188.8818     5  a 
-##  11429.0511     5   b</code></pre>
+##           expr       min        lq      mean    median        uq       max
+##  glmnet[lasso]  131.9178  136.7224  136.5627  136.7292  137.9485  139.4954
+##    admm[lasso] 8347.6163 8358.6213 8443.3099 8378.4209 8509.5887 8622.3022
+##  neval cld
+##      5  a 
+##      5   b</code></pre>
 <pre class="r"><code># difference of results
 max(abs(coef(res1) - res2$beta))</code></pre>
-<pre><code>## [1] 0.0001930355</code></pre>
+<pre><code>## [1] 0.0001883393</code></pre>
 <pre class="r"><code>mean(abs(coef(res1) - res2$beta))</code></pre>
-<pre><code>## [1] 4.434009e-07</code></pre>
+<pre><code>## [1] 4.384709e-07</code></pre>
 </div>
 </div>
 

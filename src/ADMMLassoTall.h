@@ -38,7 +38,10 @@ protected:
     MapMat datX;                  // data matrix
     MapVec datY;                  // response vector
     Vector XY;                    // X'Y
+    MatrixXd XX;                  // X'X
     LDLT solver;                  // matrix factorization
+    VectorXd savedEigs;           // saved eigenvalues
+    bool rho_unspecified;          // was rho unspecified? if so, we must set it
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
@@ -97,8 +100,15 @@ protected:
         for(SparseVector::InnerIterator iter(aux_z); iter; ++iter)
             res[iter.index()] -= iter.value();
     }
-    void rho_changed_action() {}
-    void update_rho() {}
+    void rho_changed_action() 
+    {
+        MatrixXd matToSolve(XX);
+        matToSolve.diagonal().array() += rho;
+        
+        // precompute LLT decomposition of (X'X + rho * I)
+        solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
+    }
+    //void update_rho() {}
     
     
     
@@ -173,6 +183,7 @@ public:
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
               XY(datX.transpose() * datY),
+              XX(XtX(datX)),
               lambda0(XY.cwiseAbs().maxCoeff())
     {}
     
@@ -191,7 +202,7 @@ public:
         lambda = lambda_;
         rho = rho_;
         
-        MatrixXd XX(XtX(datX));
+        //MatrixXd XX(XtX(datX));
         //Matrix XX;
         //Linalg::cross_prod_lower(XX, datX);
         
@@ -202,12 +213,14 @@ public:
             srand(0);
             eigs.init();
             eigs.compute(100, 0.1);
-            Vector evals = eigs.eigenvalues();
-            rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+            savedEigs = eigs.eigenvalues();
+            rho = std::pow(savedEigs[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
         }
         
-        XX.diagonal().array() += rho;
-        solver.compute(XX.selfadjointView<Eigen::Lower>());
+        //XX.diagonal().array() += rho;
+        
+        //XX.diagonal().array() += rho;
+        //solver.compute(XX.selfadjointView<Eigen::Lower>());
         
         eps_primal = 0.0;
         eps_dual = 0.0;

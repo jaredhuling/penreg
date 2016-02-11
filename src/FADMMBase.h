@@ -254,7 +254,7 @@ public:
             }
             // only update rho after a few iterations and after every 40 iterations.
             // too many updates makes it slow.
-            if(i > 5 && i % 40 == 0)
+            if(i > 5 && i % 2500 == 0)
                 update_rho();
         }
 

@@ -42,6 +42,7 @@ protected:
     double sprad;                 // spectral radius of X'X
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
+    bool rho_unspecified;         // was rho unspecified? if so, we must set it
 
     int iter_counter;             // which iteration are we in?
 
@@ -228,7 +229,12 @@ public:
         rho = rho_;
 
         if(rho <= 0)
+        {
+            rho_unspecified = true;
             rho = std::pow(lambda / sprad, 1.0 / 3);
+        } else {
+            rho_unspecified = false;
+        }
 
         eps_primal = 0.0;
         eps_dual = 0.0;
@@ -241,9 +247,16 @@ public:
     }
     // when computing for the next lambda, we can use the
     // current main_x, aux_z, dual_y and rho as initial values
-    void init_warm(double lambda_)
+    void init_warm(double lambda_, int iternum)
     {
         lambda = lambda_;
+        /*
+        if (iternum % 2 == 0 && rho_unspecified)
+        {
+            rho = std::pow(0.1 * lambda / std::pow(sprad, 1.1), 1.0 / 3);
+            rho_changed_action();
+        }
+         */
 
         eps_primal = 0.0;
         eps_dual = 0.0;

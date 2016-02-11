@@ -149,7 +149,7 @@ BEGIN_RCPP
             if(i == 0)
                 solver_wide->init(ilambda, rho);
             else
-                solver_wide->init_warm(ilambda);
+                solver_wide->init_warm(ilambda, i);
 
             niter[i] = solver_wide->solve(maxit);
             SpVec res = solver_wide->get_x();

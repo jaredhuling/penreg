@@ -60,7 +60,7 @@ Each routine (ie lasso, group lasso, genlasso, etc) should have the following fi
 
 * possibly more .R functions for each class (plot, summary, etc)
 
-* **fittin_function.cpp** This file will contain a function to be directly called by R. examples include lasso.cpp and genlasso.cpp. It's primary job is to set up the data and then call the appropriate solver for each value of the tuning parameter
+* **fitting_function.cpp** This file will contain a function to be directly called by R. examples include lasso.cpp and genlasso.cpp. It's primary job is to set up the data and then call the appropriate solver for each value of the tuning parameter
 
 * **fitting_function_tall.h** This file is the routine which solves the optimization problem for data with nrow(x) > ncol(x) with admm (or even potentially some other algorithm). Typically with ADMM, high dimensional settings and low dimensional settings should be implemented differently for efficiency. 
 
@@ -154,12 +154,12 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr      min       lq     mean   median       uq      max neval
-##  glmnet[lasso] 865.5942 878.5085 890.1601 884.7326 900.8261 921.1388     5
-##    admm[lasso] 650.1724 680.7714 730.1395 685.6617 815.2644 818.8276     5
-##  cld
-##    b
-##   a
+##           expr       min        lq      mean    median       uq       max
+##  glmnet[lasso] 1143.1889 1159.3408 1163.3919 1161.7135 1166.265 1186.4519
+##    admm[lasso]  881.0541  884.7235  899.4944  897.2558  913.022  921.4167
+##  neval cld
+##      5   b
+##      5  a
 ```
 
 ```r
@@ -201,13 +201,13 @@ microbenchmark(
 ```
 
 ```
-## Unit: milliseconds
-##           expr       min        lq      mean    median        uq       max
-##  glmnet[lasso]  826.9464  833.0398  857.9498  838.5703  892.0746  899.1177
-##    admm[lasso] 2400.3785 2420.7137 2467.2166 2457.7072 2457.8229 2599.4605
-##  neval cld
-##      5  a 
-##      5   b
+## Unit: seconds
+##           expr      min       lq     mean   median       uq      max neval
+##  glmnet[lasso] 1.089723 1.095534 1.106499 1.106744 1.119645 1.120848     5
+##    admm[lasso] 3.531968 3.567362 3.570156 3.580897 3.584534 3.586018     5
+##  cld
+##   a 
+##    b
 ```
 
 ```r
@@ -251,12 +251,12 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq       mean     median         uq
-##  glmnet[lasso]  139.5898  144.0186   167.6249   145.4258   179.0057
-##    admm[lasso] 8393.6365 8875.4616 10240.0296 10994.7841 11094.5063
+##           expr       min         lq       mean    median         uq
+##  glmnet[lasso]   172.634   175.7157   182.0178   185.872   186.9852
+##    admm[lasso] 11223.043 11282.1830 11333.7936 11321.160 11413.5300
 ##         max neval cld
-##    230.0844     5  a 
-##  11841.7593     5   b
+##    188.8818     5  a 
+##  11429.0511     5   b
 ```
 
 ```r

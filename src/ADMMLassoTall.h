@@ -33,11 +33,12 @@ protected:
     typedef Eigen::SparseMatrix<double> SpMat;
     typedef Eigen::SparseVector<double> SparseVector;
     typedef Eigen::LLT<Matrix> LLT;
+    typedef Eigen::LDLT<Matrix> LDLT;
     
     MapMat datX;                  // data matrix
     MapVec datY;                  // response vector
     Vector XY;                    // X'Y
-    LLT solver;                   // matrix factorization
+    LDLT solver;                  // matrix factorization
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero

@@ -72,6 +72,8 @@ protected:
     }
     void next_x(Vector &res)
     {
+        // need to change this function 
+        // to minimize logistic loss
         Vector rhs = XY - adj_y;
         // rhs += rho * adj_z;
 

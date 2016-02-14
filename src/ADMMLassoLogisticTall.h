@@ -1,5 +1,5 @@
-#ifndef ADMMLASSOTALL_H
-#define ADMMLASSOTALL_H
+#ifndef ADMMLASSOLOGISTICTALL_H
+#define ADMMLASSOLOGISTICTALL_H
 
 #include "FADMMBase.h"
 #include "Linalg/BlasWrapper.h"
@@ -19,7 +19,7 @@
 // b => y
 // f(x) => 1/2 * ||Ax - b||^2
 // g(z) => lambda * ||z||_1
-class ADMMLassoTall: public FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
+class ADMMLassoLogisticTall: public FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
 {
 protected:
     typedef float Scalar;
@@ -199,9 +199,9 @@ protected:
     }
     
 public:
-    ADMMLassoTall(ConstGenericMatrix &datX_, ConstGenericVector &datY_,
-                  double eps_abs_ = 1e-6,
-                  double eps_rel_ = 1e-6) :
+    ADMMLassoLogisticTall(ConstGenericMatrix &datX_, ConstGenericVector &datY_,
+                          double eps_abs_ = 1e-6,
+                          double eps_rel_ = 1e-6) :
     FADMMBase(datX_.cols(), datX_.cols(), datX_.cols(),
               eps_abs_, eps_rel_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
@@ -274,4 +274,4 @@ public:
 
 
 
-#endif // ADMMLASSOTALL_H
+#endif // ADMMLASSOLOGISTICTALL_H

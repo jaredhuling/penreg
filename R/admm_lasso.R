@@ -60,6 +60,7 @@ admm.lasso <- function(x,
                        lambda           = numeric(0), 
                        nlambda          = 100L,
                        lambda.min.ratio = NULL,
+                       family           = c("gaussian", "binomial"),
                        intercept        = FALSE,
                        standardize      = FALSE,
                        maxit            = 5000L,
@@ -71,15 +72,11 @@ admm.lasso <- function(x,
     n <- nrow(x)
     p <- ncol(x)
     
-    if (is.null(lambda.min.ratio)) 
-    {
-        ifelse(n < p, 0.01, 0.0001)
-    }
-    
     x = as.matrix(x)
     y = as.numeric(y)
     intercept = as.logical(intercept)
     standardize = as.logical(standardize)
+    family <- match.arg(family)
     
     if (n != length(y)) {
         stop("number of rows in x not equal to length of y")
@@ -133,14 +130,28 @@ admm.lasso <- function(x,
     rel.tol <- as.numeric(rel.tol)
     rho     <- if(is.null(rho))  -1.0  else  as.numeric(rho)
     
-    res <- .Call("admm_lasso", x, y, lambda,
-                 nlambda, lambda.min.ratio,
-                 standardize, intercept,
-                 list(maxit   = maxit,
-                      eps_abs = abs.tol,
-                      eps_rel = rel.tol,
-                      rho     = rho),
-                 PACKAGE = "penreg")
+    if (faimly == "gaussian")
+    {
+        res <- .Call("admm_lasso", x, y, lambda,
+                     nlambda, lambda.min.ratio,
+                     standardize, intercept,
+                     list(maxit   = maxit,
+                          eps_abs = abs.tol,
+                          eps_rel = rel.tol,
+                          rho     = rho),
+                     PACKAGE = "penreg")
+    } else if (family == "binomial")
+    {
+        warning("logistic regression currently in development")
+        res <- .Call("admm_lasso_logistic", x, y, lambda,
+                     nlambda, lambda.min.ratio,
+                     standardize, intercept,
+                     list(maxit   = maxit,
+                          eps_abs = abs.tol,
+                          eps_rel = rel.tol,
+                          rho     = rho),
+                     PACKAGE = "penreg")
+    }
     res
 }
 

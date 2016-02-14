@@ -107,7 +107,7 @@ protected:
         //for(SparseVector::InnerIterator iter(adj_z); iter; ++iter)
         //    rhs[iter.index()] += rho * iter.value();
         
-        res.noalias() = solver.solve(rhs);
+        //res.noalias() = solver.solve(rhs);
     }
     virtual void next_z(SparseVector &res)
     {

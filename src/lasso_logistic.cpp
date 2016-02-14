@@ -1,6 +1,6 @@
 #define EIGEN_DONT_PARALLELIZE
 
-#include "ADMMLassoTall.h"
+#include "ADMMLassoLogisticTall.h"
 #include "ADMMLassoWide.h"
 #include "DataStd.h"
 
@@ -34,10 +34,10 @@ inline void write_beta_matrix(SpMat &betas, int col, double beta0, SpVec &coef)
     }
 }
 
-RcppExport SEXP admm_lasso_logreg(SEXP x_, SEXP y_, SEXP lambda_,
-                                  SEXP nlambda_, SEXP lmin_ratio_,
-                                  SEXP standardize_, SEXP intercept_,
-                                  SEXP opts_)
+RcppExport SEXP admm_lasso_logistic(SEXP x_, SEXP y_, SEXP lambda_,
+                                    SEXP nlambda_, SEXP lmin_ratio_,
+                                    SEXP standardize_, SEXP intercept_,
+                                    SEXP opts_)
 {
     BEGIN_RCPP
     
@@ -90,7 +90,7 @@ RcppExport SEXP admm_lasso_logreg(SEXP x_, SEXP y_, SEXP lambda_,
     DataStd<double> datstd(n, p, standardize, intercept);
     datstd.standardize(datX, datY);
     
-    ADMMLassoTall *solver_tall;
+    ADMMLassoLogisticTall *solver_tall;
     ADMMLassoWide *solver_wide;
     
     if(n > p)

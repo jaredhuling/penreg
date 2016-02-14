@@ -130,7 +130,7 @@ admm.lasso <- function(x,
     rel.tol <- as.numeric(rel.tol)
     rho     <- if(is.null(rho))  -1.0  else  as.numeric(rho)
     
-    if (faimly == "gaussian")
+    if (family == "gaussian")
     {
         res <- .Call("admm_lasso", x, y, lambda,
                      nlambda, lambda.min.ratio,

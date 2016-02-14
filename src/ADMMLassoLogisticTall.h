@@ -99,7 +99,7 @@ protected:
             xcur += HH.ldlt().solve(grad);
             
         }
-        
+        res = xcur;
         //Vector rhs = XY - adj_y;
         // rhs += rho * adj_z;
         

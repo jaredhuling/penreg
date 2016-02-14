@@ -77,29 +77,36 @@ protected:
     void next_x(Vector &res)
     {
         
-        VectorXd xcur(main_x);
+        res = main_x;
         //LDLT solver_logreg;
         //solver.compute((0.25 * XX).selfadjointView<Eigen::Lower>());
         
-        for (int i = 0; i < 25; ++i)
+        for (int i = 0; i < 3; ++i)
         {
             // calculate gradient
-            VectorXd xbycur( ((datY.asDiagonal() * datX) * xcur).matrix() );
+            VectorXd xbycur( ((datY.asDiagonal() * datX) * res).matrix() );
+            std::cout << "xby:\n" << xbycur.head(5).adjoint() << std::endl;
             
-            VectorXd grad( (xbycur * (1 / (1 + xbycur.array().exp().array() ).array()).matrix()).array() + adj_y.array());
+            VectorXd grad( ((datY.asDiagonal() * datX).adjoint() * (-1 / (1 + xbycur.array().exp().array() ).array()).matrix()).array() + 
+                adj_y.array() + rho * res.array());
+            std::cout << "grad:\n" << grad.head(5).adjoint() << std::endl;
+            
             for(SparseVector::InnerIterator iter(adj_z); iter; ++iter)
                 grad[iter.index()] -= rho * iter.value();
             
+            std::cout << "grad:\n" << grad.head(5).adjoint() << std::endl;
             VectorXd xbycur_exp((-1 * xbycur.array()).array().exp());
+            
             //calculate Jacobian
             VectorXd w(xbycur_exp.array() / (1 + xbycur_exp.array()).array().square());
-            MatrixXd HH(XtWX(datY.asDiagonal() * datX, w));
+            std::cout << "w:\n" << w.head(5).adjoint() << std::endl;
+            MatrixXd HH(XtWX(datX, w));  //datY.asDiagonal() * datX
             HH.diagonal().array() += rho;
             
-            xcur += HH.ldlt().solve(grad);
-            
+            res -= HH.ldlt().solve(grad);
+            std::cout << "beta:\n" << res.head(5).adjoint() << std::endl;
         }
-        res = xcur;
+        
         //Vector rhs = XY - adj_y;
         // rhs += rho * adj_z;
         

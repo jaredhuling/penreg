@@ -81,30 +81,39 @@ protected:
         //LDLT solver_logreg;
         //solver.compute((0.25 * XX).selfadjointView<Eigen::Lower>());
         
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < 12; ++i)
         {
             // calculate gradient
-            VectorXd xbycur( ((datY.asDiagonal() * datX) * res).matrix() );
-            std::cout << "xby:\n" << xbycur.head(5).adjoint() << std::endl;
+            //VectorXd xbycur_exp( (-1 * ((datY.asDiagonal() * datX) * res).array()).array().exp() );
+            //VectorXd xbycur         ( ((datY.asDiagonal() * datX) * res).matrix() );
             
-            VectorXd grad( ((datY.asDiagonal() * datX).adjoint() * (-1 / (1 + xbycur.array().exp().array() ).array()).matrix()).array() + 
-                adj_y.array() + rho * res.array());
-            std::cout << "grad:\n" << grad.head(5).adjoint() << std::endl;
+            VectorXd prob = 1 / (1 + (-1 * (datX * res).array()).exp().array());
+            
+            //VectorXd grad( ((datY.asDiagonal() * datX).adjoint() * 
+            //    (-1 * xbycur_exp.array() / (1 + xbycur_exp.array() ).array()).matrix()).array() + 
+            //    adj_y.array() + rho * res.array());
+            
+            
+            VectorXd grad = (-1 * XY.array()).array() + (datX.adjoint() * prob).array() + 
+                adj_y.array() + (rho * res.array()).array();
+            
             
             for(SparseVector::InnerIterator iter(adj_z); iter; ++iter)
                 grad[iter.index()] -= rho * iter.value();
             
-            std::cout << "grad:\n" << grad.head(5).adjoint() << std::endl;
-            VectorXd xbycur_exp((-1 * xbycur.array()).array().exp());
+            //std::cout << "grad:\n" << grad.head(5).adjoint() << std::endl;
+            //VectorXd xbycur_exp((-1 * xbycur.array()).array().exp());
             
             //calculate Jacobian
-            VectorXd w(xbycur_exp.array() / (1 + xbycur_exp.array()).array().square());
-            std::cout << "w:\n" << w.head(5).adjoint() << std::endl;
-            MatrixXd HH(XtWX(datX, w));  //datY.asDiagonal() * datX
+            //VectorXd w((xbycur_exp.array() / (1 + xbycur_exp.array()).array().square().array()).matrix() );
+            VectorXd W = prob.array() * (1 - prob.array());
+            //MatrixXd HH(XtWX(datY.asDiagonal() * datX, w));  //datY.asDiagonal() * datX
+            MatrixXd HH(XtWX(datX, W));
             HH.diagonal().array() += rho;
             
-            res -= HH.ldlt().solve(grad);
-            std::cout << "beta:\n" << res.head(5).adjoint() << std::endl;
+            //res -= (0.15 * HH.ldlt().solve(grad).array()).matrix();
+            res.noalias() -= HH.ldlt().solve(grad);
+            //std::cout << "beta:\n" << res.head(5).adjoint() << std::endl;
         }
         
         //Vector rhs = XY - adj_y;
@@ -133,11 +142,11 @@ protected:
     }
     void rho_changed_action() 
     {
-        MatrixXd matToSolve(XX);
-        matToSolve.diagonal().array() += rho;
+        //MatrixXd matToSolve(XX);
+        //matToSolve.diagonal().array() += rho;
         
-        // precompute LLT decomposition of (X'X + rho * I)
-        solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
+        //// precompute LLT decomposition of (X'X + rho * I)
+        //solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
     }
     //void update_rho() {}
     

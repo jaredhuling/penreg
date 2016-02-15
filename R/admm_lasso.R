@@ -142,7 +142,6 @@ admm.lasso <- function(x,
                      PACKAGE = "penreg")
     } else if (family == "binomial")
     {
-        warning("logistic regression currently in development")
         res <- .Call("admm_lasso_logistic", x, y, lambda,
                      nlambda, lambda.min.ratio,
                      standardize, intercept,

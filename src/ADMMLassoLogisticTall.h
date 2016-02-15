@@ -6,6 +6,7 @@
 #include "Spectra/SymEigsSolver.h"
 #include "ADMMMatOp.h"
 #include "utils.h"
+#include <Eigen/Geometry>
 
 // minimize  1/2 * ||y - X * beta||^2 + lambda * ||beta||_1
 //
@@ -39,9 +40,10 @@ protected:
     MapVec datY;                  // response vector
     Vector XY;                    // X'Y
     MatrixXd XX;                  // X'X
+    MatrixXd HH;                  // X'WX
     LDLT solver;                  // matrix factorization
     VectorXd savedEigs;           // saved eigenvalues
-    bool rho_unspecified;          // was rho unspecified? if so, we must set it
+    bool rho_unspecified;         // was rho unspecified? if so, we must set it
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
@@ -80,8 +82,10 @@ protected:
         res = main_x;
         //LDLT solver_logreg;
         //solver.compute((0.25 * XX).selfadjointView<Eigen::Lower>());
+        int maxit_newton = 100;
+        double tol_newton = 1e-5;
         
-        for (int i = 0; i < 12; ++i)
+        for (int i = 0; i < maxit_newton; ++i)
         {
             // calculate gradient
             //VectorXd xbycur_exp( (-1 * ((datY.asDiagonal() * datX) * res).array()).array().exp() );
@@ -93,7 +97,6 @@ protected:
             //    (-1 * xbycur_exp.array() / (1 + xbycur_exp.array() ).array()).matrix()).array() + 
             //    adj_y.array() + rho * res.array());
             
-            
             VectorXd grad = (-1 * XY.array()).array() + (datX.adjoint() * prob).array() + 
                 adj_y.array() + (rho * res.array()).array();
             
@@ -101,18 +104,24 @@ protected:
             for(SparseVector::InnerIterator iter(adj_z); iter; ++iter)
                 grad[iter.index()] -= rho * iter.value();
             
-            //std::cout << "grad:\n" << grad.head(5).adjoint() << std::endl;
             //VectorXd xbycur_exp((-1 * xbycur.array()).array().exp());
             
             //calculate Jacobian
             //VectorXd w((xbycur_exp.array() / (1 + xbycur_exp.array()).array().square().array()).matrix() );
             VectorXd W = prob.array() * (1 - prob.array());
             //MatrixXd HH(XtWX(datY.asDiagonal() * datX, w));  //datY.asDiagonal() * datX
-            MatrixXd HH(XtWX(datX, W));
+            HH = XtWX(datX, W);
             HH.diagonal().array() += rho;
             
             //res -= (0.15 * HH.ldlt().solve(grad).array()).matrix();
-            res.noalias() -= HH.ldlt().solve(grad);
+            VectorXd dx = HH.ldlt().solve(grad);
+            res.noalias() -= dx;
+            //std::cout << "cross:\n" << grad.adjoint() * dx << std::endl;
+            if (std::abs(grad.adjoint() * dx) < tol_newton)
+            {
+                //std::cout << "iters:\n" << i+1 << std::endl;
+                break;
+            }
             //std::cout << "beta:\n" << res.head(5).adjoint() << std::endl;
         }
         
@@ -248,6 +257,7 @@ public:
         
         if(rho <= 0)
         {
+            rho_unspecified = true;
             MatOpSymLower<Double> op(XX);
             Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
             srand(0);
@@ -255,6 +265,9 @@ public:
             eigs.compute(100, 0.1);
             savedEigs = eigs.eigenvalues();
             rho = std::pow(savedEigs[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+        } else 
+        {
+            rho_unspecified = false;
         }
         
         //XX.diagonal().array() += rho;
@@ -277,6 +290,17 @@ public:
     void init_warm(double lambda_)
     {
         lambda = lambda_;
+        
+        if (rho_unspecified)
+        {
+            MatOpSymLower<Double> op(XX);
+            Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
+            srand(0);
+            eigs.init();
+            eigs.compute(100, 0.1);
+            savedEigs = eigs.eigenvalues();
+            rho = std::pow(savedEigs[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+        }
         
         eps_primal = 0.0;
         eps_dual = 0.0;

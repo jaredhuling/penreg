@@ -83,6 +83,15 @@ group.lasso.loss.leastsquares <- function(x, y, beta, z, lambda, gr.idx.list, gr
     loss
 }
 
+group.lasso.loss.logistic <- function(x, y, beta, z, lambda, gr.idx.list, gr.weights)
+{
+    loss <- sum(log( 1 + exp(x %*% beta))) - sum((y * x) %*% beta)
+    for (g in 1:length(gr.idx.list)) {
+        loss <- loss + gr.weights[g] * sqrt(sum(z[gr.idx.list[[g]]] ^ 2))
+    }
+    loss
+}
+
 l1.loss.logistic <- function(x, y, beta, z, lambda)
 {
     
@@ -99,9 +108,24 @@ l1.loss.logistic2 <- function(x, y, beta, z, lambda)
 
 
 
-admm.lasso.logistic.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
+admm.group.lasso.logistic.R <- function(x, y, lambda, groups, gr.weights = NULL,
+                                  rho, 
+                                  abs.tol = 1e-5, rel.tol = 1e-5, 
+                                  maxit = 500L, gamma = 4) {
     library(Matrix)
     #xtx <- crossprod(x)
+    unique.groups <- sort(unique(groups))
+    n.groups <- length(unique.groups)
+    gr.idx.list <- vector(mode = "list", length = n.groups)
+    for (g in 1:n.groups) {
+        gr.idx.list[[g]] <- which(groups == unique.groups[g])
+    }
+    if (is.null(gr.weights)) {
+        gr.weights <- numeric(n.groups)
+        for (g in 1:n.groups) {
+            gr.weights[g] <- sqrt(length(gr.idx.list[[g]]))
+        }
+    } 
     xty <- crossprod(x, y)
     loss.history <- rep(NA, maxit)
     n <- length(y)
@@ -118,12 +142,15 @@ admm.lasso.logistic.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1
         z.prev <- z
         
         # update z
-        z <- soft.thresh(alpha + u, lambda / rho)
+        for (g in 1:n.groups) {
+            gr.idx <- gr.idx.list[[g]]
+            z[gr.idx] <- block.soft.thresh(alpha[gr.idx] + u[gr.idx], gr.weights[g] * lambda / rho)
+        }
         
         # update lagrangian parameter
         u <- u + (alpha - z)
         
-        loss.history[i] <- l1.loss.logistic(x, y, alpha, z, lambda)
+        loss.history[i] <- group.lasso.loss.logistic(x, y, alpha, z, lambda)
         
         r_norm   = sqrt(sum( (alpha - z)^2 ))
         s_norm   = sqrt(sum( (-rho * (z - z.prev))^2 ))

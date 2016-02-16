@@ -1,7 +1,8 @@
 
 
 admm.genlasso.R <- function(x, y, D, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
-    library(Matrix)
+    require(Matrix)
+    require(rARPACK)
     n <- length(y)
     p <- ncol(x)
     npen <- nrow(D)
@@ -15,6 +16,23 @@ admm.genlasso.R <- function(x, y, D, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5
     
     #lambda <- lambda * n
     iters <- maxit
+    
+    if (length(lambda) > 1) {
+        warning("only works for one lambda value 
+                at a time now; using first lambda value")
+        lambda <- lambda[1]
+    }
+    
+    ## if rho value is not supplied, 
+    ## compute one that is good
+    if (is.null(rho)) {
+        eigs <- eigs_sym(xtx, k = 2, 
+                         which = "BE", 
+                         opts = list(maxitr = 500, 
+                                     tol = 1e-4))$values
+        rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
+        
+    }
     
     alpha <- numeric(p)
     z <- u <- numeric(npen)

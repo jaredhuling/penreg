@@ -4,7 +4,8 @@ admm.group.lasso.R <- function(x, y, groups, lambda, gr.weights = NULL,
                                rho, 
                                abs.tol = 1e-5, rel.tol = 1e-5, 
                                maxit = 500L, gamma = 4) {
-    library(Matrix)
+    require(Matrix)
+    require(rARPACK)
     unique.groups <- sort(unique(groups))
     n.groups <- length(unique.groups)
     gr.idx.list <- vector(mode = "list", length = n.groups)
@@ -24,6 +25,23 @@ admm.group.lasso.R <- function(x, y, groups, lambda, gr.weights = NULL,
     p <- ncol(x)
     #lambda <- lambda * n
     iters <- maxit
+    
+    if (length(lambda) > 1) {
+        warning("only works for one lambda value 
+                at a time now; using first lambda value")
+        lambda <- lambda[1]
+    }
+    
+    ## if rho value is not supplied, 
+    ## compute one that is good
+    if (is.null(rho)) {
+        eigs <- eigs_sym(xtx, k = 2, 
+                         which = "BE", 
+                         opts = list(maxitr = 500, 
+                                     tol = 1e-4))$values
+        rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
+        
+    }
     
     alpha <- z <- u <- numeric(p)
     A <- as(xtx + rho * diag(p), "Matrix")

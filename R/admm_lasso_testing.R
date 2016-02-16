@@ -1,7 +1,8 @@
 
 
-admm.lasso.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
-    library(Matrix)
+admm.lasso.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
+    require(Matrix)
+    require(rARPACK)
     xtx <- crossprod(x)
     xty <- crossprod(x, y)
     loss.history <- rep(NA, maxit)
@@ -9,6 +10,24 @@ admm.lasso.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxi
     p <- ncol(x)
     #lambda <- lambda * n
     iters <- maxit
+    
+    if (length(lambda) > 1) {
+        warning("only works for one lambda value 
+                at a time now; using first lambda value")
+        lambda <- lambda[1]
+    }
+    
+    ## if rho value is not supplied, 
+    ## compute one that is good
+    if (is.null(rho)) {
+        eigs <- eigs_sym(xtx, k = 2, 
+                         which = "BE", 
+                         opts = list(maxitr = 500, 
+                                     tol = 1e-4))$values
+        rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
+        
+    }
+        
     
     alpha <- z <- u <- numeric(p)
     A <- as(xtx + rho * diag(p), "Matrix")
@@ -68,7 +87,8 @@ l1.loss.logistic2 <- function(x, y, beta, z, lambda)
 
 
 admm.lasso.logistic.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
-    library(Matrix)
+    require(Matrix)
+    require(rARPACK)
     #xtx <- crossprod(x)
     xty <- crossprod(x, y)
     loss.history <- rep(NA, maxit)

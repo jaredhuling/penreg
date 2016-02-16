@@ -1,7 +1,22 @@
 
 
-admm.lasso.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
+admm.group.lasso.R <- function(x, y, groups, lambda, gr.weights = NULL,
+                               rho, 
+                               abs.tol = 1e-5, rel.tol = 1e-5, 
+                               maxit = 500L, gamma = 4) {
     library(Matrix)
+    unique.groups <- sort(unique(groups))
+    n.groups <- length(unique.groups)
+    gr.idx.list <- vector(mode = "list", length = n.groups)
+    for (g in 1:n.groups) {
+        gr.idx.list[[g]] <- which(groups == unique.groups[g])
+    }
+    if (is.null(gr.weights)) {
+        gr.weights <- numeric(n.groups)
+        for (g in 1:n.groups) {
+            gr.weights[g] <- sqrt(length(gr.idx.list[[g]]))
+        }
+    } 
     xtx <- crossprod(x)
     xty <- crossprod(x, y)
     loss.history <- rep(NA, maxit)
@@ -11,7 +26,9 @@ admm.lasso.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxi
     iters <- maxit
     
     alpha <- z <- u <- numeric(p)
-    A <- as(xtx + rho * diag(ncol(A)), "Matrix")
+    A <- as(xtx + rho * diag(p), "Matrix")
+    
+
     
     for (i in 1:maxit) {
         q <- xty + rho * (z - u)
@@ -21,10 +38,13 @@ admm.lasso.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxi
         #z <- sign(alpha + u) * pmax(abs(alpha + u) - lambda / rho, 0) / (1 - 1/gamma)
         #z <- ifelse( abs(alpha + u) <= gamma * (lambda/rho), z, alpha + u)
         
-        z <- soft.thresh(alpha + u, lambda / rho)
+        for (g in 1:n.groups) {
+            gr.idx <- gr.idx.list[[g]]
+            z[gr.idx] <- block.soft.thresh(alpha[gr.idx] + u[gr.idx], gr.weights[g] * lambda / rho)
+        }
         
         u <- u + (alpha - z)
-        loss.history[i] <- l1.loss.leastsquares(x, y, alpha, z, lambda)
+        loss.history[i] <- group.lasso.loss.leastsquares(x, y, alpha, z, lambda, gr.idx.list, gr.weights)
         
         r_norm = sqrt(sum( (alpha - z)^2 ))
         s_norm = sqrt(sum( (-rho * (z - z.prev))^2 ))
@@ -41,14 +61,26 @@ admm.lasso.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxi
     list(beta=z, iters = iters, loss.hist = loss.history[!is.na(loss.history)])
 }
 
+block.soft.thresh <- function(a, lambda) {
+    a * pmax(0, 1 - lambda / sqrt(sum(a ^ 2)))
+}
 
-soft.thresh <- function(a, kappa) {
-    pmax(0, a - kappa) - pmax(0, -a - kappa)
+soft.thresh <- function(a, lambda) {
+    pmax(0, a - lambda) - pmax(0, -a - lambda)
 }
 
 l1.loss.leastsquares <- function(x, y, beta, z, lambda)
 {
     0.5 * sum((y - x %*% beta) ^ 2) + lambda * sum(abs(z))
+}
+
+group.lasso.loss.leastsquares <- function(x, y, beta, z, lambda, gr.idx.list, gr.weights)
+{
+    loss <- 0.5 * sum((y - x %*% beta) ^ 2)
+    for (g in 1:length(gr.idx.list)) {
+        loss <- loss + gr.weights[g] * sqrt(sum(z[gr.idx.list[[g]]] ^ 2))
+    }
+    loss
 }
 
 l1.loss.logistic <- function(x, y, beta, z, lambda)
@@ -78,25 +110,24 @@ admm.lasso.logistic.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1
     iters <- maxit
     
     alpha <- z <- u <- numeric(p)
-    #A <- as(xtx + rho * diag(ncol(A)), "Matrix")
     
     for (i in 1:maxit) {
-        #q <- xty + rho * (z - u)
-        #alpha <- as.vector(solve(A, q))
+        
+        # update alpha
         alpha <- logistic.x.update(x, xty, u, z, rho, alpha.0 = alpha)
         z.prev <- z
         
-        #z <- sign(alpha + u) * pmax(abs(alpha + u) - lambda / rho, 0) / (1 - 1/gamma)
-        #z <- ifelse( abs(alpha + u) <= gamma * (lambda/rho), z, alpha + u)
-        
+        # update z
         z <- soft.thresh(alpha + u, lambda / rho)
         
+        # update lagrangian parameter
         u <- u + (alpha - z)
+        
         loss.history[i] <- l1.loss.logistic(x, y, alpha, z, lambda)
         
-        r_norm = sqrt(sum( (alpha - z)^2 ))
-        s_norm = sqrt(sum( (-rho * (z - z.prev))^2 ))
-        eps_pri = sqrt(p) * abs.tol + rel.tol * max(sqrt(sum(alpha ^ 2)), sqrt(sum((-z)^2 ) ))
+        r_norm   = sqrt(sum( (alpha - z)^2 ))
+        s_norm   = sqrt(sum( (-rho * (z - z.prev))^2 ))
+        eps_pri  = sqrt(p) * abs.tol + rel.tol * max(sqrt(sum(alpha ^ 2)), sqrt(sum((-z)^2 ) ))
         eps_dual = sqrt(p) * abs.tol + rel.tol * sqrt(sum( (rho * u)^2 ))
         
         
@@ -110,7 +141,7 @@ admm.lasso.logistic.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1
 }
 
 
-
+# admm x update step for logistic regression
 logistic.x.update <- function(x, xty, u, z, rho, alpha.0 = NULL)
 {
     nvars <- ncol(x)

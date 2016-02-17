@@ -28,6 +28,7 @@ protected:
     typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
     typedef Eigen::Map<const Matrix> MapMat;
     typedef Eigen::Map<const Vector> MapVec;
+    typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMatR;
     typedef const Eigen::Ref<const Matrix> ConstGenericMatrix;
     typedef const Eigen::Ref<const Vector> ConstGenericVector;
     typedef Eigen::SparseMatrix<double> SpMat;
@@ -37,8 +38,10 @@ protected:
     
     MapMat datX;                  // data matrix
     MapVec datY;                  // response vector
+    const SpMat D;                // gen ridge penalty matrix 
     Vector XY;                    // X'Y
     MatrixXd XX;                  // X'X
+    SpMat DD;                     // D'D
     LDLT solver;                  // matrix factorization
     VectorXd savedEigs;           // saved eigenvalues
     bool rho_unspecified;          // was rho unspecified? if so, we must set it
@@ -176,6 +179,7 @@ protected:
     
 public:
     ADMMSparseGenridgeTall(ConstGenericMatrix &datX_, ConstGenericVector &datY_,
+                           
                            double eps_abs_ = 1e-6,
                            double eps_rel_ = 1e-6) :
     FADMMBase(datX_.cols(), datX_.cols(), datX_.cols(),

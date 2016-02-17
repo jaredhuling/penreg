@@ -108,7 +108,7 @@ BEGIN_RCPP
 
     if(n > p)
     {
-        solver_tall = new ADMMSparseGenridgeTall(datX, datY, eps_abs, eps_rel);
+        solver_tall = new ADMMSparseGenridgeTall(datX, datY, D, eps_abs, eps_rel);
     } else
     {
         solver_wide = new ADMMLassoWide(datX, datY, eps_abs, eps_rel);

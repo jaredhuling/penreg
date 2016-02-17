@@ -98,8 +98,11 @@ l1.loss.logistic2 <- function(x, y, beta, z, lambda)
 }
 
 
-
-admm.lasso.logistic.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
+##not working yet
+admm.sparse.genridge.logistic.R <- function(x, y, lambda, lambda.ridge, D,
+                                            rho, 
+                                            abs.tol = 1e-5, rel.tol = 1e-5, 
+                                            maxit = 500L, gamma = 4) {
     require(Matrix)
     require(rARPACK)
     #xtx <- crossprod(x)
@@ -152,7 +155,7 @@ admm.lasso.logistic.R <- function(x, y, lambda, rho, abs.tol = 1e-5, rel.tol = 1
     list(beta=z, iters = iters, loss.hist = loss.history[!is.na(loss.history)])
 }
 
-
+##not working yet
 # admm x update step for logistic regression
 logistic.x.update <- function(x, xty, u, z, rho, alpha.0 = NULL)
 {

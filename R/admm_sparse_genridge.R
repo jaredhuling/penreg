@@ -1,189 +1,174 @@
 
-
-
-admm.sparse.genridge.R <- function(x, y, lambda, lambda.ridge, D,
-                                   rho = NULL, 
-                                   abs.tol = 1e-5, rel.tol = 1e-5, 
-                                   maxit = 500L, gamma = 4) {
-    require(Matrix)
-    require(rARPACK)
-    #xtx <- crossprod(x)
-    xty <- crossprod(x, y)
-    loss.history <- rep(NA, maxit)
-    n <- length(y)
+#' Fitting A Generalized Lasso Model Using ADMM Algorithm
+#' 
+#' @description Estimation of a linear model with the lasso penalty. The function
+#' \eqn{\beta} minimizes
+#' \deqn{\frac{1}{2n}\Vert y-X\beta\Vert_2^2+\lambda\Vert\beta\Vert_1}{
+#' 1/(2n) * ||y - X * \beta||_2^2 + \lambda * ||D\beta||_1}
+#' 
+#' where \eqn{n} is the sample size and \eqn{\lambda} is a tuning
+#' parameter that controls the sparseness of \eqn{\beta}.
+#' 
+#' @param x The design matrix
+#' @param y The response vector
+#' @param D The specified penalty matrix 
+#' @param intercept Whether to fit an intercept in the model. Default is \code{FALSE}. 
+#' @param standardize Whether to standardize the design matrix before
+#'                    fitting the model. Default is \code{FALSE}. Fitted coefficients
+#'                    are always returned on the original scale.
+#' @param lambda A user provided sequence of \eqn{\lambda}. If set to
+#'                      \code{NULL}, the program will calculate its own sequence
+#'                      according to \code{nlambda} and \code{lambda_min_ratio},
+#'                      which starts from \eqn{\lambda_0} (with this
+#'                      \eqn{\lambda} all coefficients will be zero) and ends at
+#'                      \code{lambda0 * lambda_min_ratio}, containing
+#'                      \code{nlambda} values equally spaced in the log scale.
+#'                      It is recommended to set this parameter to be \code{NULL}
+#'                      (the default).
+#' @param nlambda Number of values in the \eqn{\lambda} sequence. Only used
+#'                       when the program calculates its own \eqn{\lambda}
+#'                       (by setting \code{lambda = NULL}).
+#' @param lambda_min_ratio Smallest value in the \eqn{\lambda} sequence
+#'                                as a fraction of \eqn{\lambda_0}. See
+#'                                the explanation of the \code{lambda}
+#'                                argument. This parameter is only used when
+#'                                the program calculates its own \eqn{\lambda}
+#'                                (by setting \code{lambda = NULL}). The default
+#'                                value is the same as \pkg{glmnet}: 0.0001 if
+#'                                \code{nrow(x) >= ncol(x)} and 0.01 otherwise.
+#' @param maxit Maximum number of admm iterations.
+#' @param abs.tol Absolute tolerance parameter.
+#' @param rel.tol Relative tolerance parameter.
+#' @param rho ADMM step size parameter. If set to \code{NULL}, the program
+#'                   will compute a default one which has good convergence properties.
+#' @references 
+#' \url{https://projecteuclid.org/euclid.aos/1304514656}
+#' 
+#' \url{http://stanford.edu/~boyd/admm.html}
+#' @examples set.seed(123)
+#' n = 1000
+#' p = 50
+#' b = c(runif(10), rep(0, p - 10))
+#' x = matrix(rnorm(n * p, sd = 3), n, p)
+#' y = drop(x %*% b) + rnorm(n)
+#' 
+#' D <- c(1, -1, rep(0, p - 2))
+#' for (i in 1:20) {D <- rbind(D, c(rep(0, 2 * i), 1, -1, rep(0, p - 2 - 2 * i)))}
+#' 
+#' ## fit lasso model with 100 tuning parameter values
+#' res <- admm.sparse.genridge(x, y, D = D, alpha = 0.5)
+#' 
+#' 
+#' @export
+admm.sparse.genridge <- function(x, 
+                          y, 
+                          D                = NULL,
+                          lambda           = numeric(0), 
+                          alpha            = 0.5,
+                          nlambda          = 100L,
+                          lambda.min.ratio = NULL,
+                          intercept        = FALSE,
+                          standardize      = FALSE,
+                          maxit            = 5000L,
+                          abs.tol          = 1e-7,
+                          rel.tol          = 1e-7,
+                          rho              = NULL
+                          )
+{
+    n <- nrow(x)
     p <- ncol(x)
-    nridge <- nrow(D)
-    stopifnot(p == ncol(D))
-    #lambda <- lambda * n
-    iters <- maxit
     
-    if (length(lambda) > 1) {
-        warning("only works for one lambda value 
-                at a time now; using first lambda value")
-        lambda <- lambda[1]
-    }
-    if (length(lambda.ridge) > 1) {
-        warning("only works for one lambda value 
-                at a time now; using first lambda value")
-        lambda.ridge <- lambda.ridge[1]
-    }
-    xtxDtD <- crossprod(x) + lambda.ridge * crossprod(D)
-    
-    
-    ## if rho value is not supplied, 
-    ## compute one that is good
-    if (is.null(rho)) {
-        eigs <- eigs_sym(xtxDtD, k = 2, 
-                         which = "BE", 
-                         opts = list(maxitr = 500, 
-                                     tol = 1e-4))$values
-        rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
-        
-    }
-    
-    
-    alpha <- z <- u <- numeric(p)
-    A <- as(xtxDtD + rho * diag(p), "Matrix")
-    
-    for (i in 1:maxit) {
-        q <- xty + rho * (z - u)
-        alpha <- as.vector(solve(A, q))
-        z.prev <- z
-        
-        #z <- sign(alpha + u) * pmax(abs(alpha + u) - lambda / rho, 0) / (1 - 1/gamma)
-        #z <- ifelse( abs(alpha + u) <= gamma * (lambda/rho), z, alpha + u)
-        
-        z <- soft.thresh(alpha + u, lambda / rho)
-        
-        u <- u + (alpha - z)
-        loss.history[i] <- genridge.l1.loss.leastsquares(x, y, alpha, z, lambda, lambda.ridge, D)
-        
-        r_norm = sqrt(sum( (alpha - z)^2 ))
-        s_norm = sqrt(sum( (-rho * (z - z.prev))^2 ))
-        eps_pri = sqrt(p) * abs.tol + rel.tol * max(sqrt(sum(alpha ^ 2)), sqrt(sum((-z)^2 ) ))
-        eps_dual = sqrt(p) * abs.tol + rel.tol * sqrt(sum( (rho * u)^2 ))
-        
-        
-        if (r_norm < eps_pri & s_norm < eps_dual) {
-            iters <- i
-            break
-        }
-    }
-    
-    list(beta=z, iters = iters, loss.hist = loss.history[!is.na(loss.history)])
-}
-
-
-soft.thresh <- function(a, kappa) {
-    pmax(0, a - kappa) - pmax(0, -a - kappa)
-}
-
-genridge.l1.loss.leastsquares <- function(x, y, beta, z, lambda, lambda.ridge, D)
-{
-    0.5 * sum((y - x %*% beta) ^ 2) + lambda * sum(abs(z)) + lambda.ridge * sum((D %*% beta) ^ 2)
-}
-
-l1.loss.logistic <- function(x, y, beta, z, lambda)
-{
-    
-    sum(log( 1 + exp(x %*% beta))) - sum((y * x) %*% beta) + lambda * sum(abs(z))
-}
-
-l1.loss.logistic2 <- function(x, y, beta, z, lambda)
-{
-    prob <- drop(1 / (1 + exp( -1 * x %*% beta)))
-    prob <- pmax(prob, 1e-5)
-    prob <- pmin(prob, 1 - 1e-5)
-    sum( y * log(prob) ) + sum( (1 - y) * log(1 - prob) ) - lambda * sum(abs(z))
-}
-
-
-##not working yet
-admm.sparse.genridge.logistic.R <- function(x, y, lambda, lambda.ridge, D,
-                                            rho, 
-                                            abs.tol = 1e-5, rel.tol = 1e-5, 
-                                            maxit = 500L, gamma = 4) {
-    require(Matrix)
-    require(rARPACK)
-    #xtx <- crossprod(x)
-    xty <- crossprod(x, y)
-    loss.history <- rep(NA, maxit)
-    n <- length(y)
-    p <- ncol(x)
-    #lambda <- lambda * n
-    iters <- maxit
-    
-    alpha <- z <- u <- numeric(p)
-    
-    for (i in 1:maxit) {
-        
-        # update alpha
-        alpha <- logistic.x.update(x, xty, u, z, rho, alpha.0 = alpha)
-        z.prev <- z
-        
-        # update z
-        z <- soft.thresh(alpha + u, lambda / rho)
-        
-        # update lagrangian parameter
-        u <- u + (alpha - z)
-        
-        loss.history[i] <- l1.loss.logistic(x, y, alpha, z, lambda)
-        
-        r_norm   = sqrt(sum( (alpha - z)^2 ))
-        s_norm   = sqrt(sum( (-rho * (z - z.prev))^2 ))
-        eps_pri  = sqrt(p) * abs.tol + rel.tol * max(sqrt(sum(alpha ^ 2)), sqrt(sum((-z)^2 ) ))
-        eps_dual = sqrt(p) * abs.tol + rel.tol * sqrt(sum( (rho * u)^2 ))
-        
-        if(r_norm  > 10 * s_norm )
-        {
-            rho <- rho * (2)
-            u <- u * 0.5
-        } else if(s_norm  > 10 * r_norm )
-        {
-            rho <- rho * 0.5
-            u <- u * 2
-        }
-        
-        
-        
-        if (r_norm < eps_pri & s_norm < eps_dual) {
-            iters <- i
-            break
-        }
-    }
-    
-    list(beta=z, iters = iters, loss.hist = loss.history[!is.na(loss.history)])
-}
-
-##not working yet
-# admm x update step for logistic regression
-logistic.x.update <- function(x, xty, u, z, rho, alpha.0 = NULL)
-{
-    nvars <- ncol(x)
-    if (is.null(alpha.0))
+    if (is.null(lambda.min.ratio)) 
     {
-        alpha.cur <- rep(0, nvars)
+        ifelse(n < p, 0.01, 0.0001)
+    }
+    
+    if (is.null(D)) {
+        warning("D is missing, defaulting to regular lasso")
+        D <- as(diag(p), "sparseMatrix")
+    } else {
+        D <- as(D, "sparseMatrix")
+    }
+    
+    x = as.matrix(x)
+    y = as.numeric(y)
+    intercept = as.logical(intercept)
+    standardize = as.logical(standardize)
+    
+    if (n != length(y)) {
+        stop("number of rows in x not equal to length of y")
+    }
+    
+    lambda_val = sort(as.numeric(lambda), decreasing = TRUE)
+    
+    if(any(lambda_val <= 0)) 
+    {
+        stop("lambda must be positive")
+    }
+    
+    if(nlambda[1] <= 0) 
+    {
+        stop("nlambda must be a positive integer")
+    }
+    
+    if (length(alpha) > 1)
+    {
+        alpha <- alpha[1]
+        warning("Only one alpha at a time for now")
+    }
+    
+    if (alpha > 1 | alpha < 0)
+    {
+        stop("alpha must be between 0 and 1")
+    }
+    
+    if(is.null(lambda.min.ratio))
+    {
+        lmr_val <- ifelse(nrow(x) < ncol(x), 0.01, 0.0001)
     } else 
     {
-        alpha.cur <- alpha.0
+        lmr_val <- as.numeric(lambda.min.ratio)
     }
-    niter <- 25
-    tol <- 1e-7
-    for (i in 1:niter)
+    
+    if(lmr_val >= 1 | lmr_val <= 0) 
     {
-        prob <- drop(1 / (1 + exp( -x %*% alpha.cur)))
-        grad <- drop(crossprod(x, prob) - xty + rho * (alpha.cur - z + u))
-        W    <- prob * (1 - prob)
-        HH   <- crossprod(x * sqrt(W), x) + rho * diag(nvars)
-        dx   <- -1 * solve(HH, grad)
-        dfx  <- crossprod(grad, dx)
-        if (abs(dfx) < tol)
-        {
-            break
-        }
-        alpha.cur <- alpha.cur + 1 * dx
-        
+        stop("lambda.min.ratio must be within (0, 1)")
     }
-    alpha.cur
+    
+    lambda           <- lambda_val
+    nlambda          <- as.integer(nlambda[1])
+    lambda.min.ratio <- lmr_val
+    
+    
+    if(maxit <= 0)
+    {
+        stop("maxit should be positive")
+    }
+    if(abs.tol < 0 | rel.tol < 0)
+    {
+        stop("abs.tol and rel.tol should be nonnegative")
+    }
+    if(isTRUE(rho <= 0))
+    {
+        stop("rho should be positive")
+    }
+    
+    maxit   <- as.integer(maxit)
+    abs.tol <- as.numeric(abs.tol)
+    rel.tol <- as.numeric(rel.tol)
+    rho     <- if(is.null(rho))  -1.0  else  as.numeric(rho)
+    
+    res <- .Call("admm_sparse_genridge", 
+                 x, y, D, 
+                 lambda,
+                 alpha,
+                 nlambda, lambda.min.ratio,
+                 standardize, intercept,
+                 list(maxit   = maxit,
+                      eps_abs = abs.tol,
+                      eps_rel = rel.tol,
+                      rho     = rho),
+                 PACKAGE = "penreg")
+    res
 }
 

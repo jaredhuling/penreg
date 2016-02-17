@@ -150,9 +150,9 @@ BEGIN_RCPP
         if(n > p)
         {
             if(i == 0)
-                solver_tall->init(ilambda, rho);
+                solver_tall->init(ilambda * alpha, alpha, rho);
             else
-                solver_tall->init_warm(ilambda);
+                solver_tall->init_warm(ilambda * alpha);
 
             niter[i] = solver_tall->solve(maxit);
             SpVec res = solver_tall->get_z();

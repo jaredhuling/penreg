@@ -47,6 +47,7 @@ protected:
     bool rho_unspecified;          // was rho unspecified? if so, we must set it
     
     Scalar lambda;                // L1 penalty
+    Scalar alpha;                 // l1/l2 mix param
     Scalar lambda0;               // minimum lambda to make coefficients all zero
     
     
@@ -105,10 +106,10 @@ protected:
     }
     void rho_changed_action() 
     {
-        MatrixXd matToSolve(XX);
+        MatrixXd matToSolve = XX + MatrixXd((lambda * (1 - alpha)/alpha) * DD);
         matToSolve.diagonal().array() += rho;
         
-        // precompute LLT decomposition of (X'X + rho * I)
+        // precompute LLT decomposition of (X'X + lambda * (1 - alpha) * D'D + rho * I)
         solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
     }
     //void update_rho() {}
@@ -179,22 +180,24 @@ protected:
     
 public:
     ADMMSparseGenridgeTall(ConstGenericMatrix &datX_, ConstGenericVector &datY_,
-                           
+                           const SpMatR &D_,
                            double eps_abs_ = 1e-6,
                            double eps_rel_ = 1e-6) :
     FADMMBase(datX_.cols(), datX_.cols(), datX_.cols(),
               eps_abs_, eps_rel_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
+              D(D_),
               XY(datX.transpose() * datY),
               XX(XtX(datX)),
+              DD(XtX(D)),
               lambda0(XY.cwiseAbs().maxCoeff())
     {}
     
     double get_lambda_zero() const { return lambda0; }
     
     // init() is a cold start for the first lambda
-    void init(double lambda_, double rho_)
+    void init(double lambda_, double alpha_, double rho_)
     {
         main_x.setZero();
         aux_z.setZero();
@@ -204,6 +207,7 @@ public:
         adj_y.setZero();
         
         lambda = lambda_;
+        alpha = alpha_;
         rho = rho_;
         
         //MatrixXd XX(XtX(datX));
@@ -212,6 +216,7 @@ public:
         
         if(rho <= 0)
         {
+            rho_unspecified = true;
             MatOpSymLower<Double> op(XX);
             Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
             srand(0);
@@ -219,6 +224,8 @@ public:
             eigs.compute(100, 0.1);
             savedEigs = eigs.eigenvalues();
             rho = std::pow(savedEigs[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+        } else {
+            rho_unspecified = false;
         }
         
         //XX.diagonal().array() += rho;
@@ -228,8 +235,8 @@ public:
         
         eps_primal = 0.0;
         eps_dual = 0.0;
-        resid_primal = 9999;
-        resid_dual = 9999;
+        resid_primal = 999999;
+        resid_dual = 999999;
         
         adj_a = 1.0;
         adj_c = 9999;
@@ -242,10 +249,17 @@ public:
     {
         lambda = lambda_;
         
+        if (rho_unspecified)
+        {
+            rho = std::pow(savedEigs[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+        }
+        
         eps_primal = 0.0;
         eps_dual = 0.0;
-        resid_primal = 9999;
-        resid_dual = 9999;
+        resid_primal = 999999;
+        resid_dual = 999999;
+        
+        rho_changed_action();
         
         // adj_a = 1.0;
         // adj_c = 9999;

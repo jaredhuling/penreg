@@ -25,7 +25,7 @@
 #'                      \code{nlambda} values equally spaced in the log scale.
 #'                      It is recommended to set this parameter to be \code{NULL}
 #'                      (the default).
-#' @param alpha lasso / generalized ridge mixing parameter s.t. \eqn{0 \leq \alpha \leq 1}. 
+#' @param alpha lasso / generalized ridge mixing parameter s.t. \eqn{0 \le \alpha \le 1}. 
 #'                      0 is generalized ridge, 1 is lasso. 
 #' @param nlambda Number of values in the \eqn{\lambda} sequence. Only used
 #'                       when the program calculates its own \eqn{\lambda}

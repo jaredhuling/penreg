@@ -26,7 +26,7 @@ which starts from \eqn{\lambda_0} (with this
 It is recommended to set this parameter to be \code{NULL}
 (the default).}
 
-\item{alpha}{lasso / generalized ridge mixing parameter s.t. \eqn{0 \leq \alpha \leq 1}. 
+\item{alpha}{lasso / generalized ridge mixing parameter s.t. \eqn{0 \le \alpha \le 1}. 
 0 is generalized ridge, 1 is lasso.}
 
 \item{nlambda}{Number of values in the \eqn{\lambda} sequence. Only used

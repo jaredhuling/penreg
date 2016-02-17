@@ -34,15 +34,16 @@ inline void write_beta_matrix(SpMat &betas, int col, double beta0, SpVec &coef)
     }
 }
 
-RcppExport SEXP admm_lasso(SEXP x_, 
-                           SEXP y_, 
-                           SEXP lambda_,
-                           SEXP alpha_,
-                           SEXP nlambda_, 
-                           SEXP lmin_ratio_,
-                           SEXP standardize_, 
-                           SEXP intercept_,
-                           SEXP opts_)
+RcppExport SEXP admm_sparse_genridge(SEXP x_, 
+                                     SEXP y_, 
+                                     SEXP D_,
+                                     SEXP lambda_,
+                                     SEXP alpha_,
+                                     SEXP nlambda_, 
+                                     SEXP lmin_ratio_,
+                                     SEXP standardize_, 
+                                     SEXP intercept_,
+                                     SEXP opts_)
 {
 BEGIN_RCPP
 
@@ -62,6 +63,10 @@ BEGIN_RCPP
     // Copy data and convert type from double to float
     std::copy(xx.begin(), xx.end(), datX.data());
     std::copy(yy.begin(), yy.end(), datY.data());
+    
+    const SpMat D(as<MSpMat>(D_));
+    
+    const int M = D.rows();
     
     //MatrixXd datX(as<MatrixXd>(x_));
     //VectorXd datY(as<VectorXd>(y_));
@@ -95,6 +100,8 @@ BEGIN_RCPP
 
     DataStd<double> datstd(n, p, standardize, intercept);
     datstd.standardize(datX, datY);
+    
+    
 
     ADMMSparseGenridgeTall *solver_tall;
     ADMMLassoWide *solver_wide;

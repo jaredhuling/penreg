@@ -26,6 +26,9 @@ which starts from \eqn{\lambda_0} (with this
 It is recommended to set this parameter to be \code{NULL}
 (the default).}
 
+\item{alpha}{lasso / generalized ridge mixing parameter s.t. 0 \leq \alpha \leq 1. 
+0 is generalized ridge, 1 is lasso.}
+
 \item{nlambda}{Number of values in the \eqn{\lambda} sequence. Only used
 when the program calculates its own \eqn{\lambda}
 (by setting \code{lambda = NULL}).}
@@ -55,10 +58,10 @@ value is the same as \pkg{glmnet}: 0.0001 if
 \code{nrow(x) >= ncol(x)} and 0.01 otherwise.}
 }
 \description{
-Estimation of a linear model with the lasso penalty. The function
+Estimation of a linear model with the generalized ridge and lasso penalties. The function
 \eqn{\beta} minimizes
 \deqn{\frac{1}{2n}\Vert y-X\beta\Vert_2^2+\lambda\Vert\beta\Vert_1}{
-1/(2n) * ||y - X * \beta||_2^2 + \lambda * ||D\beta||_1}
+1/(2n) * ||y - X * \beta||_2^2 + \lambda * (1 - \alpha) * ||D\beta||^2 + \lambda * \alpha * ||\beta||_1}
 
 where \eqn{n} is the sample size and \eqn{\lambda} is a tuning
 parameter that controls the sparseness of \eqn{\beta}.
@@ -80,8 +83,6 @@ res <- admm.sparse.genridge(x, y, D = D, alpha = 0.5)
 
 }
 \references{
-\url{https://projecteuclid.org/euclid.aos/1304514656}
-
 \url{http://stanford.edu/~boyd/admm.html}
 }
 

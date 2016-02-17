@@ -1,10 +1,10 @@
 
 #' Fitting A Generalized Lasso Model Using ADMM Algorithm
 #' 
-#' @description Estimation of a linear model with the lasso penalty. The function
+#' @description Estimation of a linear model with the generalized ridge and lasso penalties. The function
 #' \eqn{\beta} minimizes
 #' \deqn{\frac{1}{2n}\Vert y-X\beta\Vert_2^2+\lambda\Vert\beta\Vert_1}{
-#' 1/(2n) * ||y - X * \beta||_2^2 + \lambda * ||D\beta||_1}
+#' 1/(2n) * ||y - X * \beta||_2^2 + \lambda * (1 - \alpha) * ||D\beta||^2 + \lambda * \alpha * ||\beta||_1}
 #' 
 #' where \eqn{n} is the sample size and \eqn{\lambda} is a tuning
 #' parameter that controls the sparseness of \eqn{\beta}.
@@ -25,6 +25,8 @@
 #'                      \code{nlambda} values equally spaced in the log scale.
 #'                      It is recommended to set this parameter to be \code{NULL}
 #'                      (the default).
+#' @param alpha lasso / generalized ridge mixing parameter s.t. 0 \leq \alpha \leq 1. 
+#'                      0 is generalized ridge, 1 is lasso. 
 #' @param nlambda Number of values in the \eqn{\lambda} sequence. Only used
 #'                       when the program calculates its own \eqn{\lambda}
 #'                       (by setting \code{lambda = NULL}).
@@ -41,9 +43,7 @@
 #' @param rel.tol Relative tolerance parameter.
 #' @param rho ADMM step size parameter. If set to \code{NULL}, the program
 #'                   will compute a default one which has good convergence properties.
-#' @references 
-#' \url{https://projecteuclid.org/euclid.aos/1304514656}
-#' 
+#' @references  
 #' \url{http://stanford.edu/~boyd/admm.html}
 #' @examples set.seed(123)
 #' n = 1000

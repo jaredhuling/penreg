@@ -3,18 +3,18 @@ Type: Package
 Title: Solving Statistical Optimization Problems Using the ADMM Algorithm
 Version: 1.0
 Date: 2015-02-17
-Author: Yixuan Qiu and Tao Gao
-Maintainer: Yixuan Qiu <yixuan.qiu@cos.name>
+Author: Jared Huling
+Maintainer: Jared Huling <jared.huling@thegoogleemail.com>
 Description: Solving statistical optimization problems using the
     Alternating Direction Method of Multipliers (ADMM) algorithm. Models
     that have already been implemented by this package include Lasso,
     Elastic Net, Dantzig Selector, Basis Pursuit, Least Absolute Deviation etc.
 License: GPL (>= 2)
 Depends:
-    methods
+    methods,
+    Matrix
 Imports:
     Rcpp (>= 0.11.0),
-    Matrix,
     ggplot2
 LinkingTo: Rcpp, RcppEigen
 RoxygenNote: 5.0.1

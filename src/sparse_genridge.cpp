@@ -38,6 +38,7 @@ RcppExport SEXP admm_sparse_genridge(SEXP x_,
                                      SEXP y_, 
                                      SEXP D_,
                                      SEXP lambda_,
+                                     SEXP penalty_factor_,
                                      SEXP alpha_,
                                      SEXP nlambda_, 
                                      SEXP lmin_ratio_,
@@ -66,7 +67,7 @@ BEGIN_RCPP
     
     const SpMat D(as<MSpMat>(D_));
     
-    const int M = D.rows();
+    //const int M = D.rows();
     
     //MatrixXd datX(as<MatrixXd>(x_));
     //VectorXd datY(as<VectorXd>(y_));
@@ -88,6 +89,9 @@ BEGIN_RCPP
     ArrayXd lambda(as<ArrayXd>(lambda_));
     int nlambda = lambda.size();
     
+    ArrayXd penalty_factor(as<ArrayXd>(penalty_factor_));
+    
+    
 
     List opts(opts_);
     const int maxit        = as<int>(opts["maxit"]);
@@ -104,14 +108,14 @@ BEGIN_RCPP
     
 
     ADMMSparseGenridgeTall *solver_tall;
-    ADMMLassoWide *solver_wide;
+    ADMMSparseGenridgeTall *solver_wide;
 
-    if(n > p)
+    if(2 * n > p)
     {
         solver_tall = new ADMMSparseGenridgeTall(datX, datY, D, eps_abs, eps_rel);
     } else
     {
-        solver_wide = new ADMMLassoWide(datX, datY, eps_abs, eps_rel);
+        solver_wide = new ADMMSparseGenridgeTall(datX, datY, D, eps_abs, eps_rel);
     }
 
     
@@ -147,10 +151,10 @@ BEGIN_RCPP
     for(int i = 0; i < nlambda; i++)
     {
         ilambda = lambda[i] * n / datstd.get_scaleY();
-        if(n > p)
+        if(2 * n > p)
         {
             if(i == 0)
-                solver_tall->init(ilambda * alpha, alpha, rho);
+                solver_tall->init(ilambda * alpha, alpha, penalty_factor, rho);
             else
                 solver_tall->init_warm(ilambda * alpha);
 
@@ -162,12 +166,12 @@ BEGIN_RCPP
         } else {
             
             if(i == 0)
-                solver_wide->init(ilambda, rho);
+                solver_wide->init(ilambda * alpha, alpha, penalty_factor, rho);
             else
-                solver_wide->init_warm(ilambda, i);
+                solver_wide->init_warm(ilambda * alpha);
 
             niter[i] = solver_wide->solve(maxit);
-            SpVec res = solver_wide->get_x();
+            SpVec res = solver_wide->get_z(); //used to be get_z();
             double beta0 = 0.0;
             datstd.recover(beta0, res);
             write_beta_matrix(beta, i, beta0, res);
@@ -176,7 +180,7 @@ BEGIN_RCPP
     }
     
 
-    if(n > p) 
+    if(2 * n > p) 
     {
         delete solver_tall;
     }

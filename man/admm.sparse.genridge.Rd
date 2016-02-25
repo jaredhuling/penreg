@@ -4,10 +4,10 @@
 \alias{admm.sparse.genridge}
 \title{Fitting A Generalized Lasso Model Using ADMM Algorithm}
 \usage{
-admm.sparse.genridge(x, y, D = NULL, lambda = numeric(0), alpha = 0.5,
-  nlambda = 100L, lambda.min.ratio = NULL, intercept = FALSE,
-  standardize = FALSE, maxit = 5000L, abs.tol = 1e-07, rel.tol = 1e-07,
-  rho = NULL)
+admm.sparse.genridge(x, y, D = NULL, lambda = numeric(0), penalty.factor,
+  alpha = 0.5, nlambda = 100L, lambda.min.ratio = NULL,
+  intercept = FALSE, standardize = FALSE, maxit = 5000L,
+  abs.tol = 1e-07, rel.tol = 1e-07, rho = NULL)
 }
 \arguments{
 \item{x}{The design matrix}
@@ -25,6 +25,9 @@ which starts from \eqn{\lambda_0} (with this
 \code{nlambda} values equally spaced in the log scale.
 It is recommended to set this parameter to be \code{NULL}
 (the default).}
+
+\item{penalty.factor}{a vector with length equal to the number of columns in x to be multiplied by lambda. by default
+it is a vector of 1s}
 
 \item{alpha}{lasso / generalized ridge mixing parameter s.t. \eqn{0 \le \alpha \le 1}. 
 0 is generalized ridge, 1 is lasso.}
@@ -79,7 +82,6 @@ for (i in 1:20) {D <- rbind(D, c(rep(0, 2 * i), 1, -1, rep(0, p - 2 - 2 * i)))}
 
 ## fit lasso model with 100 tuning parameter values
 res <- admm.sparse.genridge(x, y, D = D, alpha = 0.5)
-
 
 }
 \references{

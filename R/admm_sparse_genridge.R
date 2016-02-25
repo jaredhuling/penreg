@@ -12,10 +12,6 @@
 #' @param x The design matrix
 #' @param y The response vector
 #' @param D The specified penalty matrix 
-#' @param intercept Whether to fit an intercept in the model. Default is \code{FALSE}. 
-#' @param standardize Whether to standardize the design matrix before
-#'                    fitting the model. Default is \code{FALSE}. Fitted coefficients
-#'                    are always returned on the original scale.
 #' @param lambda A user provided sequence of \eqn{\lambda}. If set to
 #'                      \code{NULL}, the program will calculate its own sequence
 #'                      according to \code{nlambda} and \code{lambda_min_ratio},
@@ -25,6 +21,12 @@
 #'                      \code{nlambda} values equally spaced in the log scale.
 #'                      It is recommended to set this parameter to be \code{NULL}
 #'                      (the default).
+#' @param penalty.factor a vector with length equal to the number of columns in x to be multiplied by lambda. by default
+#'                      it is a vector of 1s
+#' @param intercept Whether to fit an intercept in the model. Default is \code{FALSE}. 
+#' @param standardize Whether to standardize the design matrix before
+#'                    fitting the model. Default is \code{FALSE}. Fitted coefficients
+#'                    are always returned on the original scale.
 #' @param alpha lasso / generalized ridge mixing parameter s.t. \eqn{0 \le \alpha \le 1}. 
 #'                      0 is generalized ridge, 1 is lasso. 
 #' @param nlambda Number of values in the \eqn{\lambda} sequence. Only used
@@ -58,12 +60,19 @@
 #' ## fit lasso model with 100 tuning parameter values
 #' res <- admm.sparse.genridge(x, y, D = D, alpha = 0.5)
 #' 
+#' @useDynLib penreg
+#' 
+#' @import methods
+#' @import Rcpp
+#' @import ggplot2
+#' 
 #' 
 #' @export
 admm.sparse.genridge <- function(x, 
                           y, 
                           D                = NULL,
                           lambda           = numeric(0), 
+                          penalty.factor,
                           alpha            = 0.5,
                           nlambda          = 100L,
                           lambda.min.ratio = NULL,
@@ -97,6 +106,10 @@ admm.sparse.genridge <- function(x,
     
     if (n != length(y)) {
         stop("number of rows in x not equal to length of y")
+    }
+    
+    if (missing(penalty.factor)) {
+        penalty.factor <- numeric(0)
     }
     
     lambda_val = sort(as.numeric(lambda), decreasing = TRUE)
@@ -161,6 +174,7 @@ admm.sparse.genridge <- function(x,
     res <- .Call("admm_sparse_genridge", 
                  x, y, D, 
                  lambda,
+                 penalty.factor,
                  alpha,
                  nlambda, lambda.min.ratio,
                  standardize, intercept,

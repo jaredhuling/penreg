@@ -44,12 +44,13 @@ protected:
     SpMat DD;                     // D'D
     LDLT solver;                  // matrix factorization
     VectorXd savedEigs;           // saved eigenvalues
-    bool rho_unspecified;          // was rho unspecified? if so, we must set it
+    ArrayXd penalty_factor; // penalty multiplication factors 
+    bool rho_unspecified;         // was rho unspecified? if so, we must set it
     
     Scalar lambda;                // L1 penalty
     Scalar alpha;                 // l1/l2 mix param
     Scalar lambda0;               // minimum lambda to make coefficients all zero
-    
+    int penalty_factor_size;
     
     
     // x -> Ax
@@ -63,19 +64,33 @@ protected:
     
     
     
-    static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty)
+    static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty, 
+                               int penalty_factor_size, ArrayXd penalty_factor)
     {
         int v_size = vec.size();
         res.setZero();
         res.reserve(v_size);
         
         const double *ptr = vec.data();
-        for(int i = 0; i < v_size; i++)
+        if (penalty_factor_size < 1)
         {
-            if(ptr[i] > penalty)
-                res.insertBack(i) = ptr[i] - penalty;
-            else if(ptr[i] < -penalty)
-                res.insertBack(i) = ptr[i] + penalty;
+            for(int i = 0; i < v_size; i++)
+            {
+                if(ptr[i] > penalty)
+                    res.insertBack(i) = ptr[i] - penalty;
+                else if(ptr[i] < -penalty)
+                    res.insertBack(i) = ptr[i] + penalty;
+            }
+        } else 
+        {
+            for(int i = 0; i < v_size; i++)
+            {
+                double pen_tmp = penalty * penalty_factor(i);
+                if(ptr[i] > pen_tmp)
+                    res.insertBack(i) = ptr[i] - pen_tmp;
+                else if(ptr[i] < -pen_tmp)
+                    res.insertBack(i) = ptr[i] + pen_tmp;
+            }
         }
     }
     void next_x(Vector &res)
@@ -92,7 +107,7 @@ protected:
     virtual void next_z(SparseVector &res)
     {
         Vector vec = main_x + adj_y / rho;
-        soft_threshold(res, vec, lambda / rho);
+        soft_threshold(res, vec, lambda / rho, penalty_factor_size, penalty_factor);
     }
     void next_residual(Vector &res)
     {
@@ -197,7 +212,7 @@ public:
     double get_lambda_zero() const { return lambda0; }
     
     // init() is a cold start for the first lambda
-    void init(double lambda_, double alpha_, double rho_)
+    void init(double lambda_, double alpha_, ArrayXd penalty_factor_, double rho_)
     {
         main_x.setZero();
         aux_z.setZero();
@@ -206,6 +221,8 @@ public:
         adj_z.setZero();
         adj_y.setZero();
         
+        penalty_factor = penalty_factor_;
+        penalty_factor_size = penalty_factor.size();
         lambda = lambda_;
         alpha = alpha_;
         rho = rho_;

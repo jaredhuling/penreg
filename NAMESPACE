@@ -3,6 +3,7 @@
 export(admm.genlasso)
 export(admm.lasso)
 export(admm.sparse.genridge)
+export(coord.lasso)
 import(Rcpp)
 import(ggplot2)
 import(methods)

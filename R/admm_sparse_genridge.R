@@ -110,6 +110,10 @@ admm.sparse.genridge <- function(x,
     
     if (missing(penalty.factor)) {
         penalty.factor <- numeric(0)
+    } else {
+        if (length(penalty.factor) != p) {
+            stop("penalty.factor must be same length as number of columns in x")
+        }
     }
     
     lambda_val = sort(as.numeric(lambda), decreasing = TRUE)

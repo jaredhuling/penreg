@@ -43,6 +43,9 @@ protected:
     double threshval;
     VectorXd resid_cur;
     
+    ArrayXd penalty_factor;       // penalty multiplication factors 
+    int penalty_factor_size;
+    
     /*
     static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty)
     {
@@ -81,21 +84,41 @@ protected:
         
         int j;
         double grad;
-        for (j = 0; j < nvars; ++j)
+        // if no penalty multiplication factors specified
+        if (penalty_factor_size < 1) 
         {
-            double beta_prev = beta(j);
-            grad = datX.col(j).dot(resid_cur) / Xsq(j) + beta(j);
-            
-            threshval = soft_threshold(grad, lambda / Xsq(j));
-            
-            // update residual if the coefficient changes after
-            // thresholding. 
-            if (beta_prev != threshval)
+            for (j = 0; j < nvars; ++j)
             {
-                beta(j) = threshval;
-                resid_cur -= (threshval - beta_prev) * datX.col(j);
+                double beta_prev = beta(j);
+                grad = datX.col(j).dot(resid_cur) / Xsq(j) + beta(j);
+                
+                threshval = soft_threshold(grad, lambda / Xsq(j));
+                
+                // update residual if the coefficient changes after
+                // thresholding. 
+                if (beta_prev != threshval)
+                {
+                    beta(j) = threshval;
+                    resid_cur -= (threshval - beta_prev) * datX.col(j);
+                }
             }
-            
+        } else //if penalty multiplication factors are used
+        {
+            for (j = 0; j < nvars; ++j)
+            {
+                double beta_prev = beta(j);
+                grad = datX.col(j).dot(resid_cur) / Xsq(j) + beta(j);
+                
+                threshval = soft_threshold(grad, penalty_factor(j) * lambda / Xsq(j));
+                
+                // update residual if the coefficient changes after
+                // thresholding. 
+                if (beta_prev != threshval)
+                {
+                    beta(j) = threshval;
+                    resid_cur -= (threshval - beta_prev) * datX.col(j);
+                }
+            }
         }
         
     }
@@ -158,11 +181,14 @@ public:
     double get_lambda_zero() const { return lambda0; }
     
     // init() is a cold start for the first lambda
-    void init(double lambda_)
+    void init(double lambda_,  ArrayXd penalty_factor_)
     {
         beta.setZero();
         
         lambda = lambda_;
+        
+        penalty_factor = penalty_factor_;
+        penalty_factor_size = penalty_factor.size();
         
     }
     // when computing for the next lambda, we can use the

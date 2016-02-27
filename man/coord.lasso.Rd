@@ -4,7 +4,7 @@
 \alias{coord.lasso}
 \title{Fitting A Lasso Model Using the Coordinate Descent Algorithm}
 \usage{
-coord.lasso(x, y, lambda = numeric(0), nlambda = 100L,
+coord.lasso(x, y, lambda = numeric(0), penalty.factor, nlambda = 100L,
   lambda.min.ratio = NULL, family = c("gaussian", "binomial"),
   intercept = FALSE, standardize = FALSE, maxit = 5000L, tol = 1e-07)
 }
@@ -22,6 +22,9 @@ which starts from \eqn{\lambda_0} (with this
 \code{nlambda} values equally spaced in the log scale.
 It is recommended to set this parameter to be \code{NULL}
 (the default).}
+
+\item{penalty.factor}{a vector with length equal to the number of columns in x to be multiplied by lambda. by default
+it is a vector of 1s}
 
 \item{nlambda}{Number of values in the \eqn{\lambda} sequence. Only used
 when the program calculates its own \eqn{\lambda}

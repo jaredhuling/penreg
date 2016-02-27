@@ -33,9 +33,14 @@ inline void write_beta_matrix(SpMat &betas, int col, double beta0, SpVec &coef)
     }
 }
 
-RcppExport SEXP coord_lasso(SEXP x_, SEXP y_, SEXP lambda_,
-                            SEXP nlambda_, SEXP lmin_ratio_,
-                            SEXP standardize_, SEXP intercept_,
+RcppExport SEXP coord_lasso(SEXP x_, 
+                            SEXP y_, 
+                            SEXP lambda_,
+                            SEXP penalty_factor_,
+                            SEXP nlambda_, 
+                            SEXP lmin_ratio_,
+                            SEXP standardize_, 
+                            SEXP intercept_,
                             SEXP opts_)
 {
     BEGIN_RCPP
@@ -76,6 +81,8 @@ RcppExport SEXP coord_lasso(SEXP x_, SEXP y_, SEXP lambda_,
     //   1/2 * ||y - X * beta||^2 + n * lambda * ||beta||_1
     ArrayXd lambda(as<ArrayXd>(lambda_));
     int nlambda = lambda.size();
+    
+    ArrayXd penalty_factor(as<ArrayXd>(penalty_factor_));
     
     
     List opts(opts_);
@@ -119,7 +126,7 @@ RcppExport SEXP coord_lasso(SEXP x_, SEXP y_, SEXP lambda_,
         ilambda = lambda[i] * n / datstd.get_scaleY();
         
         if(i == 0)
-            solver->init(ilambda);
+            solver->init(ilambda, penalty_factor);
         else
             solver->init_warm(ilambda);
         

@@ -25,6 +25,8 @@
 #'                      \code{nlambda} values equally spaced in the log scale.
 #'                      It is recommended to set this parameter to be \code{NULL}
 #'                      (the default).
+#' @param penalty.factor a vector with length equal to the number of columns in x to be multiplied by lambda. by default
+#'                      it is a vector of 1s
 #' @param nlambda Number of values in the \eqn{\lambda} sequence. Only used
 #'                       when the program calculates its own \eqn{\lambda}
 #'                       (by setting \code{lambda = NULL}).
@@ -57,6 +59,7 @@
 coord.lasso <- function(x, 
                         y, 
                         lambda           = numeric(0), 
+                        penalty.factor,
                         nlambda          = 100L,
                         lambda.min.ratio = NULL,
                         family           = c("gaussian", "binomial"),
@@ -77,6 +80,14 @@ coord.lasso <- function(x,
     
     if (n != length(y)) {
         stop("number of rows in x not equal to length of y")
+    }
+    
+    if (missing(penalty.factor)) {
+        penalty.factor <- numeric(0)
+    } else {
+        if (length(penalty.factor) != p) {
+            stop("penalty.factor must be same length as number of columns in x")
+        }
     }
     
     lambda_val = sort(as.numeric(lambda), decreasing = TRUE)
@@ -123,8 +134,11 @@ coord.lasso <- function(x,
     
     if (family == "gaussian")
     {
-        res <- .Call("coord_lasso", x, y, lambda,
-                     nlambda, lambda.min.ratio,
+        res <- .Call("coord_lasso", x, y, 
+                     lambda,
+                     penalty.factor,
+                     nlambda, 
+                     lambda.min.ratio,
                      standardize, intercept,
                      list(maxit = maxit,
                           tol   = tol),

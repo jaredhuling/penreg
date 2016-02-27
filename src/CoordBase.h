@@ -11,14 +11,11 @@ class CoordBase
 {
 protected:
     
-    const int nvars;   // dimension of beta
-    const int nobs;    // number of rows
+    const int nvars;      // dimension of beta
+    const int nobs;       // number of rows
     
     VecTypeX beta;        // parameters to be optimized
-    VecTypeX beta_prev;       // auxiliary parameters
-    
-    VectorXi coefwaszero; 
-    VectorXi coefwaszeroprev;
+    VecTypeX beta_prev;   // auxiliary parameters
     
     
     double tol;           // tolerance for primal residual
@@ -42,8 +39,6 @@ public:
     CoordBase(int n_, int p_,
               double tol_ = 1e-6) :
     nvars(p_), nobs(n_),
-    coefwaszero(p_),
-    coefwaszeroprev(p_),
     beta(p_), beta_prev(p_), // allocate space but do not set values
     tol(tol_)
     {}
@@ -70,11 +65,6 @@ public:
             beta_prev = beta;
             // old_y = dual_y;
             //std::copy(dual_y.data(), dual_y.data() + dim_dual, old_y.data());
-            
-            if (i > 0)
-            {
-                coefwaszeroprev = coefwaszero;
-            }
             
             update_beta();
             

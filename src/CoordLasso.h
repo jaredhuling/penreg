@@ -150,7 +150,7 @@ public:
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
               XY(datX.transpose() * datY),
-              resid_cur(datX_.rows()),
+              resid_cur(datY),  //assumes we start our beta estimate at 0
               Xsq(datX.array().square().colwise().sum()),
               lambda0(XY.cwiseAbs().maxCoeff())
     {}
@@ -164,11 +164,7 @@ public:
         
         lambda = lambda_;
         
-        coefwaszero.fill(1);
-        coefwaszeroprev.setZero();
-        
         threshval = 1; // just need to initialize with some nonzero value, it will be changed
-        resid_cur = datY;
     }
     // when computing for the next lambda, we can use the
     // current main_x, aux_z, dual_y and rho as initial values

@@ -66,7 +66,7 @@ x = matrix(rnorm(n * p, sd = 3), n, p)
 y = drop(x \%*\% b) + rnorm(n)
 
 ## fit lasso model with 100 tuning parameter values
-res <- admm.lasso(x, y)
+res <- coord.lasso(x, y)
 
 
 }

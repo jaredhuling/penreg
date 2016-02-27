@@ -87,6 +87,9 @@ protected:
             grad = datX.col(j).dot(resid_cur) / Xsq(j) + beta(j);
             
             threshval = soft_threshold(grad, lambda / Xsq(j));
+            
+            // update residual if the coefficient changes after
+            // thresholding. 
             if (beta_prev != threshval)
             {
                 beta(j) = threshval;
@@ -94,7 +97,6 @@ protected:
             }
             
         }
-        
         
     }
     

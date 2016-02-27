@@ -164,7 +164,6 @@ public:
         
         lambda = lambda_;
         
-        threshval = 1; // just need to initialize with some nonzero value, it will be changed
     }
     // when computing for the next lambda, we can use the
     // current main_x, aux_z, dual_y and rho as initial values
@@ -172,7 +171,6 @@ public:
     {
         lambda = lambda_;
         
-        threshval = 1; // just need to initialize with some nonzero value, it will be changed
     }
 };
 

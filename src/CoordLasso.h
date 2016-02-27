@@ -18,7 +18,7 @@
 // b => y
 // f(x) => 1/2 * ||Ax - b||^2
 // g(z) => lambda * ||z||_1
-class CoordLasso: public CoordBase<Eigen::VectorXd>
+class CoordLasso: public CoordBase<Eigen::VectorXd> //Eigen::SparseVector<double>
 {
 protected:
     typedef float Scalar;
@@ -39,6 +39,9 @@ protected:
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
+    
+    double threshval;
+    VectorXd resid_cur;
     
     /*
     static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty)
@@ -68,15 +71,28 @@ protected:
             return(0);
     }
     
+    void update_grad()
+    {
+        
+    }
+    
     void next_beta(Vector &res)
     {
         
         int j;
+        double grad;
         for (j = 0; j < nvars; ++j)
         {
-            beta(j) = 0;
-            double threshval = datX.col(j).dot(datY - datX * beta) / Xsq(j);
-            beta(j) = soft_threshold(threshval, lambda / Xsq(j));
+            double beta_prev = beta(j);
+            grad = datX.col(j).dot(resid_cur) / Xsq(j) + beta(j);
+            
+            threshval = soft_threshold(grad, lambda / Xsq(j));
+            if (beta_prev != threshval)
+            {
+                beta(j) = threshval;
+                resid_cur -= (threshval - beta_prev) * datX.col(j);
+            }
+            
         }
         
         
@@ -132,6 +148,7 @@ public:
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
               XY(datX.transpose() * datY),
+              resid_cur(datX_.rows()),
               Xsq(datX.array().square().colwise().sum()),
               lambda0(XY.cwiseAbs().maxCoeff())
     {}
@@ -144,12 +161,20 @@ public:
         beta.setZero();
         
         lambda = lambda_;
+        
+        coefwaszero.fill(1);
+        coefwaszeroprev.setZero();
+        
+        threshval = 1; // just need to initialize with some nonzero value, it will be changed
+        resid_cur = datY;
     }
     // when computing for the next lambda, we can use the
     // current main_x, aux_z, dual_y and rho as initial values
     void init_warm(double lambda_)
     {
         lambda = lambda_;
+        
+        threshval = 1; // just need to initialize with some nonzero value, it will be changed
     }
 };
 

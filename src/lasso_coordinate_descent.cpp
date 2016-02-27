@@ -80,7 +80,7 @@ RcppExport SEXP coord_lasso(SEXP x_, SEXP y_, SEXP lambda_,
     
     List opts(opts_);
     const int maxit        = as<int>(opts["maxit"]);
-    const double tol   = as<double>(opts["tol"]);
+    const double tol       = as<double>(opts["tol"]);
     const bool standardize = as<bool>(standardize_);
     const bool intercept   = as<bool>(intercept_);
     

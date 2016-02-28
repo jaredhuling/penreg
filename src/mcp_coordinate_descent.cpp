@@ -119,18 +119,25 @@ RcppExport SEXP coord_mcp(SEXP x_,
     //SpMat beta(p + 1, nlambda);
     //beta.reserve(Eigen::VectorXi::Constant(nlambda, std::min(n, p)));
     
-    MatrixXd beta(p+1, nlambda);
+
+    std::vector<MatrixXd> beta_array(ngamma);
+    std::vector<VectorXd> intercept_array(ngamma);
+    std::vector<IntegerVector> niters(ngamma);
     
-    IntegerVector niter(nlambda);
+    
     double ilambda = 0.0;
+    
     
     for (int g = 0; g < ngamma; g++) // loop over gamma values
     {
+        MatrixXd beta(p, nlambda);
+        VectorXd intercepts(nlambda);
+        IntegerVector niter(nlambda);
         for(int i = 0; i < nlambda; i++) // loop over lambda values
         {
             ilambda = lambda[i] * n / datstd.get_scaleY();
             
-            if(i == 0)
+            if(i == 0 && g == 0)
                 solver->init(ilambda, gamma[g], penalty_factor);
             else
                 solver->init_warm(ilambda, gamma[g]);
@@ -139,20 +146,27 @@ RcppExport SEXP coord_mcp(SEXP x_,
             VectorXd res = solver->get_beta();
             double beta0 = 0.0;
             datstd.recover(beta0, res);
-            beta(0,i) = beta0;
-            beta.block(1, i, p, 1) = res;
+            intercepts(i) = beta0;
+            beta.block(0, i, p, 1) = res;
             //write_beta_matrix(beta, i, beta0, res);
             
         }
+        beta_array[g]      = beta;
+        intercept_array[g] = intercepts;
+        niters[g]          = niter;
     }
     
     delete solver;
     
     //beta.makeCompressed();
     
-    return List::create(Named("lambda") = lambda,
-                        Named("beta") = beta,
-                        Named("niter") = niter);
+    List coefficients = List::create(Named("beta") = beta_array,
+                                     Named("intercept") = intercept_array);
+    
+    return List::create(Named("coefficients") = coefficients,
+                        Named("lambda") = lambda,
+                        Named("gamma") = gamma,
+                        Named("niter") = niters);
     
     END_RCPP
 }

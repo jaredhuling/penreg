@@ -153,3 +153,9 @@ cd.mcp <- function(x,
     class(res) <- "cd.mcp"
     res
 }
+
+
+
+
+
+

@@ -53,22 +53,22 @@
 #' y = drop(x %*% b) + rnorm(n)
 #' 
 #' ## fit lasso model with 100 tuning parameter values
-#' res <- coord.mcp(x, y, gamma = 4)
+#' res <- cd.mcp(x, y, gamma = 4)
 #' 
 #' 
 #' @export
-coord.lasso <- function(x, 
-                        y, 
-                        lambda           = numeric(0), 
-                        gamma            = 4,
-                        penalty.factor,
-                        nlambda          = 100L,
-                        lambda.min.ratio = NULL,
-                        family           = c("gaussian", "binomial"),
-                        intercept        = FALSE,
-                        standardize      = FALSE,
-                        maxit            = 5000L,
-                        tol              = 1e-7
+cd.mcp <- function(x, 
+                   y, 
+                   lambda           = numeric(0), 
+                   gamma            = 4,
+                   penalty.factor,
+                   nlambda          = 100L,
+                   lambda.min.ratio = NULL,
+                   family           = c("gaussian", "binomial"),
+                   intercept        = FALSE,
+                   standardize      = FALSE,
+                   maxit            = 5000L,
+                   tol              = 1e-7
 )
 {
     n <- nrow(x)
@@ -150,5 +150,6 @@ coord.lasso <- function(x,
     {
         stop("Binomial not implemented yet")
     }
+    class(res) <- "cd.mcp"
     res
 }

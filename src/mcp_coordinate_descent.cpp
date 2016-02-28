@@ -1,7 +1,9 @@
 #define EIGEN_DONT_PARALLELIZE
 
+
 #include "CoordMCP.h"
 #include "DataStd.h"
+//#include <boost/tuple/tuple.hpp>
 
 using Eigen::MatrixXf;
 using Eigen::VectorXf;
@@ -119,11 +121,10 @@ RcppExport SEXP coord_mcp(SEXP x_,
     //SpMat beta(p + 1, nlambda);
     //beta.reserve(Eigen::VectorXi::Constant(nlambda, std::min(n, p)));
     
-
-    std::vector<MatrixXd> beta_array(ngamma);
-    std::vector<VectorXd> intercept_array(ngamma);
     std::vector<IntegerVector> niters(ngamma);
     
+    //std::vector<boost::tuple<MatrixXd, VectorXd, ArrayXd, double> > coef_results(ngamma);
+    List coef_results(ngamma);
     
     double ilambda = 0.0;
     
@@ -151,19 +152,21 @@ RcppExport SEXP coord_mcp(SEXP x_,
             //write_beta_matrix(beta, i, beta0, res);
             
         }
-        beta_array[g]      = beta;
-        intercept_array[g] = intercepts;
-        niters[g]          = niter;
+        niters[g]       = niter;
+        
+        //coef_results[g] = boost::make_tuple(beta, intercepts, lambda, gamma[g]);
+        coef_results[g] = List::create(Named("beta") = beta, 
+                                       Named("intercept") = intercepts, 
+                                       Named("lambda") = lambda, 
+                                       Named("gamma") = gamma[g]);
     }
     
     delete solver;
     
     //beta.makeCompressed();
     
-    List coefficients = List::create(Named("beta") = beta_array,
-                                     Named("intercept") = intercept_array);
     
-    return List::create(Named("coefficients") = coefficients,
+    return List::create(Named("coefficients") = coef_results,
                         Named("lambda") = lambda,
                         Named("gamma") = gamma,
                         Named("niter") = niters);

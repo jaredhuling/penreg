@@ -146,6 +146,7 @@ cd.mcp <- function(x,
                      list(maxit = maxit,
                           tol   = tol),
                      PACKAGE = "penreg")
+        names(res$coefficients) <- paste0("g", 1:length(gamma))
     } else if (family == "binomial")
     {
         stop("Binomial not implemented yet")

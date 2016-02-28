@@ -172,8 +172,8 @@ public:
               tol_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
+              resid_cur(datY_),  //assumes we start our beta estimate at 0
               XY(datX.transpose() * datY),
-              resid_cur(datY),  //assumes we start our beta estimate at 0
               Xsq(datX.array().square().colwise().sum()),
               lambda0(XY.cwiseAbs().maxCoeff())
     {}

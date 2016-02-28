@@ -4,8 +4,9 @@
 \alias{cv.cd.mcp}
 \title{cross validation for coordinate descent MCP}
 \usage{
-cv.cd.mcp(x, y, weights, type.measure = c("mse", "mae"), ..., nfolds = 10,
-  foldid, trace.it = FALSE)
+cv.cd.mcp(x, y, weights, lambda = numeric(0), gamma = 4,
+  type.measure = c("mse", "mae"), ..., nfolds = 10, foldid,
+  trace.it = FALSE)
 }
 \arguments{
 \item{x}{The design matrix}

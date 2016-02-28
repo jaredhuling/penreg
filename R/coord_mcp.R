@@ -146,6 +146,8 @@ cd.mcp <- function(x,
                      list(maxit = maxit,
                           tol   = tol),
                      PACKAGE = "penreg")
+        lambda <- res$lambda
+        gamma  <- res$gamma
         names(res$coefficients) <- paste0("g", 1:length(gamma))
         parms <- array(NA, dim = c(2, length(gamma), length(lambda)))
         parms[1,,] <- matrix(rep(gamma, length(lambda)), nrow = 2, byrow = FALSE)
@@ -264,19 +266,26 @@ predict.cd.mcp = function(object,newx,s=NULL,which.gamma=NULL,type=c("response",
 #' 
 #' 
 #' @export
-cv.cd.mcp = function(x, y, weights, type.measure = c("mse", "mae"), ..., nfolds=10, foldid, trace.it=FALSE){
+cv.cd.mcp = function(x, y, weights, 
+                     lambda = numeric(0), 
+                     gamma  = 4,
+                     type.measure = c("mse", "mae"), ..., 
+                     nfolds=10, foldid, trace.it = FALSE){
     this.call=match.call()
     type.measure=match.arg(type.measure)
     N=nrow(x)
+    ngamma = length(gamma)
     if(missing(weights))weights=rep(1.0,N)else weights=as.double(weights)
     
     ###Fit the model once to get dimensions etc of output
     y             = drop(y) # we dont like matrix responses unless we need them
-    cd.mcp.object = cd.mcp(x,y,...)
+    cd.mcp.object = cd.mcp(x, y, lambda = lambda, gamma = gamma, ...)
     parms         = cd.mcp.object$parms
     lambda        = cd.mcp.object$lambda
     gamma         = cd.mcp.object$gamma
-    nz            = sapply(predict(cd.mcp.object, type="nonzero"), function(x) sapply(x, length))
+    nz            = if (ngamma > 1) sapply(predict(cd.mcp.object, type="nonzero"), function(x) sapply(x, length)) else
+        matrix(sapply(predict(cd.mcp.object, type="nonzero"), length), ncol = 1)
+    if (ngamma == 1) colnames(nz) <- "g1"
     dd            = dim(nz)
     ngamma        = dd[2]
     nlams         = matrix(0, nfolds, dd[2])
@@ -287,11 +296,12 @@ cv.cd.mcp = function(x, y, weights, type.measure = c("mse", "mae"), ..., nfolds=
     ###Now fit the nfold models and store them
     for(i in seq(nfolds)){
         which=foldid==i
-        #fitobj = cd.mcp.object(x[!which,,drop=FALSE],y[!which],weights=weights[!which],parms=parms, ...)
-        fitobj = cd.mcp.object(x[!which,,drop=FALSE], y[!which], 
-                               #weights = weights[!which], #no weights yet
-                               lambda  = lambda, 
-                               gamma   = gamma, ...)
+        #fitobj = cd.mcp(x[!which,,drop=FALSE],y[!which],weights=weights[!which],parms=parms, ...)
+        fitobj = cd.mcp(x[!which,,drop=FALSE], y[!which], 
+                        #weights = weights[!which], #no weights yet
+                        lambda = lambda,
+                        gamma = gamma,
+                        ...)
         preds  = predict(fitobj, x[which,,drop=FALSE])
         for(j in seq(ngamma)){
             nlami = length(fitobj$coef[[j]]$lambda)

@@ -39,7 +39,7 @@ protected:
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
-    Scalar gamma;
+    double gamma;
     
     double threshval;
     VectorXd resid_cur;
@@ -75,6 +75,24 @@ protected:
             return(0);
     }
     
+    static double soft_threshold_mcp(double &value, const double &penalty, double &gamma)
+    {
+        double absval = std::abs(value);
+        if (absval > penalty * gamma)
+        {
+            return(value);
+        } else if (value > penalty) 
+        {
+            return((value - penalty) / (1 - 1/gamma));
+        } else if (value < -penalty) 
+        {
+            return((value + penalty) / (1 - 1/gamma));
+        } else 
+        {
+            return(0);
+        }
+    }
+    
     void update_grad()
     {
         
@@ -93,7 +111,7 @@ protected:
                 double beta_prev = beta(j);
                 grad = datX.col(j).dot(resid_cur) / Xsq(j) + beta(j);
                 
-                threshval = soft_threshold(grad, lambda / Xsq(j));
+                threshval = soft_threshold_mcp(grad, lambda / Xsq(j), gamma);
                 
                 // update residual if the coefficient changes after
                 // thresholding. 
@@ -110,7 +128,7 @@ protected:
                 double beta_prev = beta(j);
                 grad = datX.col(j).dot(resid_cur) / Xsq(j) + beta(j);
                 
-                threshval = soft_threshold(grad, penalty_factor(j) * lambda / Xsq(j));
+                threshval = soft_threshold_mcp(grad, penalty_factor(j) * lambda / Xsq(j), gamma);
                 
                 // update residual if the coefficient changes after
                 // thresholding. 

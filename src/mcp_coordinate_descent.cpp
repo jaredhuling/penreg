@@ -124,9 +124,9 @@ RcppExport SEXP coord_mcp(SEXP x_,
     IntegerVector niter(nlambda);
     double ilambda = 0.0;
     
-    for (int g = 0; g < ngamma; g++)
+    for (int g = 0; g < ngamma; g++) // loop over gamma values
     {
-        for(int i = 0; i < nlambda; i++)
+        for(int i = 0; i < nlambda; i++) // loop over lambda values
         {
             ilambda = lambda[i] * n / datstd.get_scaleY();
             

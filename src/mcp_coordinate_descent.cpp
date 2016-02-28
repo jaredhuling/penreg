@@ -1,6 +1,6 @@
 #define EIGEN_DONT_PARALLELIZE
 
-#include "CoordLasso.h"
+#include "CoordMCP.h"
 #include "DataStd.h"
 
 using Eigen::MatrixXf;
@@ -33,15 +33,16 @@ inline void write_beta_matrix(SpMat &betas, int col, double beta0, SpVec &coef)
     }
 }
 
-RcppExport SEXP coord_lasso(SEXP x_, 
-                            SEXP y_, 
-                            SEXP lambda_,
-                            SEXP penalty_factor_,
-                            SEXP nlambda_, 
-                            SEXP lmin_ratio_,
-                            SEXP standardize_, 
-                            SEXP intercept_,
-                            SEXP opts_)
+RcppExport SEXP coord_mcp(SEXP x_, 
+                          SEXP y_, 
+                          SEXP lambda_,
+                          SEXP gamma_,
+                          SEXP penalty_factor_,
+                          SEXP nlambda_, 
+                          SEXP lmin_ratio_,
+                          SEXP standardize_, 
+                          SEXP intercept_,
+                          SEXP opts_)
 {
     BEGIN_RCPP
     
@@ -81,6 +82,8 @@ RcppExport SEXP coord_lasso(SEXP x_,
     //   1/2 * ||y - X * beta||^2 + n * lambda * ||beta||_1
     ArrayXd lambda(as<ArrayXd>(lambda_));
     int nlambda = lambda.size();
+    ArrayXd gamma(as<ArrayXd>(gamma_));
+    int ngamma = gamma.size();
     
     ArrayXd penalty_factor(as<ArrayXd>(penalty_factor_));
     
@@ -94,8 +97,8 @@ RcppExport SEXP coord_lasso(SEXP x_,
     DataStd<double> datstd(n, p, standardize, intercept);
     datstd.standardize(datX, datY);
     
-    CoordLasso *solver;
-    solver = new CoordLasso(datX, datY, tol);
+    CoordMCP *solver;
+    solver = new CoordMCP(datX, datY, tol);
     
     
     
@@ -121,23 +124,26 @@ RcppExport SEXP coord_lasso(SEXP x_,
     IntegerVector niter(nlambda);
     double ilambda = 0.0;
     
-    for(int i = 0; i < nlambda; i++)
+    for (int g = 0; g < ngamma; g++)
     {
-        ilambda = lambda[i] * n / datstd.get_scaleY();
-        
-        if(i == 0)
-            solver->init(ilambda, penalty_factor);
-        else
-            solver->init_warm(ilambda);
-        
-        niter[i] = solver->solve(maxit);
-        VectorXd res = solver->get_beta();
-        double beta0 = 0.0;
-        datstd.recover(beta0, res);
-        beta(0,i) = beta0;
-        beta.block(1, i, p, 1) = res;
-        //write_beta_matrix(beta, i, beta0, res);
-        
+        for(int i = 0; i < nlambda; i++)
+        {
+            ilambda = lambda[i] * n / datstd.get_scaleY();
+            
+            if(i == 0)
+                solver->init(ilambda, gamma[g], penalty_factor);
+            else
+                solver->init_warm(ilambda, gamma[g]);
+            
+            niter[i] = solver->solve(maxit);
+            VectorXd res = solver->get_beta();
+            double beta0 = 0.0;
+            datstd.recover(beta0, res);
+            beta(0,i) = beta0;
+            beta.block(1, i, p, 1) = res;
+            //write_beta_matrix(beta, i, beta0, res);
+            
+        }
     }
     
     delete solver;

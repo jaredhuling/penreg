@@ -18,7 +18,7 @@
 // b => y
 // f(x) => 1/2 * ||Ax - b||^2
 // g(z) => lambda * ||z||_1
-class CoordLasso: public CoordBase<Eigen::VectorXd> //Eigen::SparseVector<double>
+class CoordMCP: public CoordBase<Eigen::VectorXd> //Eigen::SparseVector<double>
 {
 protected:
     typedef float Scalar;
@@ -39,6 +39,7 @@ protected:
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
+    Scalar gamma;
     
     double threshval;
     VectorXd resid_cur;
@@ -165,9 +166,9 @@ protected:
     
     
 public:
-    CoordLasso(ConstGenericMatrix &datX_, 
-               ConstGenericVector &datY_,
-               double tol_ = 1e-6) :
+    CoordMCP(ConstGenericMatrix &datX_, 
+             ConstGenericVector &datY_,
+             double tol_ = 1e-6) :
     CoordBase(datX_.rows(), datX_.cols(),
               tol_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
@@ -181,11 +182,12 @@ public:
     double get_lambda_zero() const { return lambda0; }
     
     // init() is a cold start for the first lambda
-    void init(double lambda_,  ArrayXd penalty_factor_)
+    void init(double lambda_, double gamma_, ArrayXd penalty_factor_)
     {
         beta.setZero();
         
         lambda = lambda_;
+        gamma  = gamma_;
         
         penalty_factor = penalty_factor_;
         penalty_factor_size = penalty_factor.size();
@@ -193,9 +195,10 @@ public:
     }
     // when computing for the next lambda, we can use the
     // current main_x, aux_z, dual_y and rho as initial values
-    void init_warm(double lambda_)
+    void init_warm(double lambda_, double gamma_)
     {
         lambda = lambda_;
+        gamma  = gamma_;
         
     }
 };

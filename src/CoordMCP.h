@@ -1,5 +1,5 @@
-#ifndef COORDLASSO_H
-#define COORDLASSO_H
+#ifndef COORDMCP_H
+#define COORDMCP_H
 
 #include "CoordBase.h"
 #include "Linalg/BlasWrapper.h"
@@ -49,18 +49,18 @@ protected:
     /*
     static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty)
     {
-        int v_size = vec.size();
-        res.setZero();
-        res.reserve(v_size);
-        
-        const double *ptr = vec.data();
-        for(int i = 0; i < v_size; i++)
-        {
-            if(ptr[i] > penalty)
-                res.insertBack(i) = ptr[i] - penalty;
-            else if(ptr[i] < -penalty)
-                res.insertBack(i) = ptr[i] + penalty;
-        }
+    int v_size = vec.size();
+    res.setZero();
+    res.reserve(v_size);
+    
+    const double *ptr = vec.data();
+    for(int i = 0; i < v_size; i++)
+    {
+    if(ptr[i] > penalty)
+    res.insertBack(i) = ptr[i] - penalty;
+    else if(ptr[i] < -penalty)
+    res.insertBack(i) = ptr[i] + penalty;
+    }
     }
     */
     
@@ -202,4 +202,4 @@ public:
 
 
 
-#endif // COORDLASSO_H
+#endif // COORDMCP_H

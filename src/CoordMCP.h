@@ -43,6 +43,9 @@ protected:
     
     double threshval;
     VectorXd resid_cur;
+    double null_dev;
+    double objective_prev;
+    double objective;
     
     ArrayXd penalty_factor;       // penalty multiplication factors 
     int penalty_factor_size;
@@ -96,6 +99,25 @@ protected:
     void update_grad()
     {
         
+    }
+    
+    virtual bool converged()
+    {
+        // glmnet stopping criterion
+        objective_prev = objective;
+        objective = 0.5 * resid_cur.squaredNorm();
+        for (int pp = 0; pp < nvars; ++pp)
+        {
+            double abs_beta = std::abs(beta(pp));
+            if (abs_beta < lambda * gamma) 
+            {
+                objective += lambda * (abs_beta - 0.5 * std::pow(beta(pp), 2) / (lambda * gamma));
+            } else 
+            {
+                objective += 0.5 * std::pow(lambda, 2) * gamma;
+            }
+        }
+        return (std::abs(objective_prev - objective) < null_dev * tol);
     }
     
     void next_beta(Vector &res)
@@ -186,11 +208,14 @@ protected:
 public:
     CoordMCP(ConstGenericMatrix &datX_, 
              ConstGenericVector &datY_,
+             ArrayXd &penalty_factor_,
              double tol_ = 1e-6) :
     CoordBase(datX_.rows(), datX_.cols(),
               tol_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
+              penalty_factor(penalty_factor_),
+              penalty_factor_size(penalty_factor_.size()),
               resid_cur(datY_),  //assumes we start our beta estimate at 0 //
               XY(datX.transpose() * datY),
               Xsq(datX.array().square().colwise().sum()),
@@ -200,16 +225,16 @@ public:
     double get_lambda_zero() const { return lambda0; }
     
     // init() is a cold start for the first lambda
-    void init(double lambda_, double gamma_, ArrayXd penalty_factor_)
+    void init(double lambda_, double gamma_)
     {
         beta.setZero();
+        resid_cur = datY; //reset residual vector
         
         lambda = lambda_;
         gamma  = gamma_;
         
-        penalty_factor = penalty_factor_;
-        penalty_factor_size = penalty_factor.size();
-        
+        null_dev  = ( datY.array() - datY.sum() / double(datY.size()) ).matrix().squaredNorm();
+        objective = null_dev;
     }
     // when computing for the next lambda, we can use the
     // current main_x, aux_z, dual_y and rho as initial values

@@ -100,7 +100,7 @@ RcppExport SEXP coord_mcp(SEXP x_,
     datstd.standardize(datX, datY);
     
     CoordMCP *solver;
-    solver = new CoordMCP(datX, datY, tol);
+    solver = new CoordMCP(datX, datY, penalty_factor, tol);
     
     
     
@@ -138,8 +138,8 @@ RcppExport SEXP coord_mcp(SEXP x_,
         {
             ilambda = lambda[i] * n / datstd.get_scaleY();
             
-            if(i == 0 && g == 0)
-                solver->init(ilambda, gamma[g], penalty_factor);
+            if(i == 0)
+                solver->init(ilambda, gamma[g]);
             else
                 solver->init_warm(ilambda, gamma[g]);
             

@@ -22,6 +22,12 @@ protected:
     
     virtual void next_beta(VecTypeX &res) = 0;
     
+    virtual bool converged()
+    {
+        return (stopRule(beta, beta_prev, tol));
+    }
+    
+    
     void print_row(int iter)
     {
         const char sep = ' ';
@@ -50,10 +56,6 @@ public:
         //VecTypeX newbeta(nvars);
         next_beta(beta);
         //beta.swap(newbeta);
-    }
-    bool converged()
-    {
-        return (stopRule(beta, beta_prev, tol));
     }
     
     int solve(int maxit)

@@ -148,4 +148,5 @@ cd.lasso <- function(x,
         stop("Binomial not implemented yet")
     }
     class(res) <- "cd.lasso"
+    res
 }

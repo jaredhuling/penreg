@@ -95,7 +95,7 @@ RcppExport SEXP coord_lasso(SEXP x_,
     datstd.standardize(datX, datY);
     
     CoordLasso *solver;
-    solver = new CoordLasso(datX, datY, tol);
+    solver = new CoordLasso(datX, datY, penalty_factor, tol);
     
     
     
@@ -126,7 +126,7 @@ RcppExport SEXP coord_lasso(SEXP x_,
         ilambda = lambda[i] * n / datstd.get_scaleY();
         
         if(i == 0)
-            solver->init(ilambda, penalty_factor);
+            solver->init(ilambda);
         else
             solver->init_warm(ilambda);
         

@@ -166,6 +166,7 @@ cd.mcp <- function(x,
 
 ## Modified from Rahul Mazumder, Trevor Hastie, and Jerome Friedman's sparsenet package
 ## https://cran.r-project.org/web/packages/sparsenet/index.html
+## this function is an internal prediction function for MCP code
 mcppredict = function(object,newx,s=NULL, type = c("response", "coefficients", "nonzero"), exact=FALSE, ...){
     a0=t(as.matrix(object$intercept))
     gamma=object$gamma

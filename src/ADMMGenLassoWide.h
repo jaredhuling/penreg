@@ -197,7 +197,8 @@ public:
                      const SpMatR &D_,
                      double eps_abs_ = 1e-6,
                      double eps_rel_ = 1e-6) :
-    ADMMBase(datX_.cols(), D_.rows(), D_.rows(),
+    ADMMBase<Eigen::SparseVector<double>, Eigen::VectorXd, Eigen::VectorXd>
+            (datX_.cols(), D_.rows(), D_.rows(),
              eps_abs_, eps_rel_),
              datX(datX_.data(), datX_.rows(), datX_.cols()),
              datY(datY_.data(), datY_.size()),

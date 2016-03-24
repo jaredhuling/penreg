@@ -111,7 +111,6 @@ protected:
     //void update_rho() {}
     
     
-    
     // Calculate ||v1 - v2||^2 when v1 and v2 are sparse
     static double diff_squared_norm(const SparseVector &v1, const SparseVector &v2)
     {
@@ -178,7 +177,8 @@ public:
     ADMMLassoTall(ConstGenericMatrix &datX_, ConstGenericVector &datY_,
                   double eps_abs_ = 1e-6,
                   double eps_rel_ = 1e-6) :
-    FADMMBase(datX_.cols(), datX_.cols(), datX_.cols(),
+    FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
+               (datX_.cols(), datX_.cols(), datX_.cols(),
               eps_abs_, eps_rel_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
@@ -216,8 +216,6 @@ public:
             savedEigs = eigs.eigenvalues();
             rho = std::pow(savedEigs[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
         }
-        
-        //XX.diagonal().array() += rho;
         
         //XX.diagonal().array() += rho;
         //solver.compute(XX.selfadjointView<Eigen::Lower>());

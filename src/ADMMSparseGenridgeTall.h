@@ -198,7 +198,8 @@ public:
                            const SpMatR &D_,
                            double eps_abs_ = 1e-6,
                            double eps_rel_ = 1e-6) :
-    FADMMBase(datX_.cols(), datX_.cols(), datX_.cols(),
+    FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
+             (datX_.cols(), datX_.cols(), datX_.cols(),
               eps_abs_, eps_rel_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),

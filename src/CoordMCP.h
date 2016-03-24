@@ -210,7 +210,7 @@ public:
              ConstGenericVector &datY_,
              ArrayXd &penalty_factor_,
              double tol_ = 1e-6) :
-    CoordBase(datX_.rows(), datX_.cols(),
+    CoordBase<Eigen::VectorXd>(datX_.rows(), datX_.cols(),
               tol_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),

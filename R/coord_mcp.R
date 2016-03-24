@@ -43,8 +43,6 @@
 #' @param tol convergence tolerance parameter.
 #' @param rel.tol Relative tolerance parameter.
 #' 
-#' @references 
-#' \url{http://stanford.edu/~boyd/admm.html}
 #' @examples set.seed(123)
 #' n = 1000
 #' p = 50

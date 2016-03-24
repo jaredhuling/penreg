@@ -76,7 +76,4 @@ res <- cd.mcp(x, y, gamma = 4)
 
 
 }
-\references{
-\url{http://stanford.edu/~boyd/admm.html}
-}
 

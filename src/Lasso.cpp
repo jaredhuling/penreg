@@ -89,10 +89,12 @@ BEGIN_RCPP
 
     DataStd<double> datstd(n, p, standardize, intercept);
     datstd.standardize(datX, datY);
-
+    
+    // initialize pointers 
     ADMMLassoTall *solver_tall;
     ADMMLassoWide *solver_wide;
 
+    // initialize classes
     if(n > p)
     {
         solver_tall = new ADMMLassoTall(datX, datY, eps_abs, eps_rel);
@@ -119,8 +121,6 @@ BEGIN_RCPP
         lambda = lambda.exp();
         nlambda = lambda.size();
     }
-
-
 
 
     SpMat beta(p + 1, nlambda);

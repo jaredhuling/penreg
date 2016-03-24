@@ -73,7 +73,4 @@ res <- cd.lasso(x, y)
 
 
 }
-\references{
-\url{http://stanford.edu/~boyd/admm.html}
-}
 

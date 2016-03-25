@@ -5,10 +5,9 @@
 \title{Overlapping Group Lasso (oglasso)}
 \usage{
 oglasso(x, y, group, family = c("gaussian", "binomial"), nlambda = 100L,
-  lambda = NULL, lambda.min.ratio = 1e-04, group.weights = NULL,
+  lambda = NULL, lambda.min.ratio = NULL, group.weights = NULL,
   standardize = TRUE, intercept = TRUE, dynamic.rho = TRUE,
-  irls.tol = 1e-07, eps = 1e-04, inner.tol = 0.001, irls.maxit = 100L,
-  outer.maxit = 500L, inner.maxit = 250L)
+  abs.tol = 1e-05, rel.tol = 1e-05, irls.tol = 1e-05, irls.maxit = 100L)
 }
 \arguments{
 \item{x}{input matrix or SparseMatrix of dimension nobs \times nvars. Each row is an observation, 
@@ -43,16 +42,7 @@ The default is to use the square root of group size for the group selection meth
 
 \item{irls.tol}{convergence tolerance for IRLS iterations. Only used if family != "gaussian". Default is 10^{-7}.}
 
-\item{eps}{convergence tolerance for ADMM/FISTA iterations for the relative dual and primal residuals. 
-Default is 10^{-4}, which is typically adequate.}
-
-\item{inner.tol}{convergence tolerance for inner iterations. Does not apply for method = "admm". Default is 10^{-3}.}
-
 \item{irls.maxit}{integer. Maximum number of IRLS iterations. Only used if family != "gaussian". Default is 100.}
-
-\item{outer.maxit}{integer. Maximum number of outer (ADMM or FISTA) iterations. Default is 500.}
-
-\item{inner.maxit}{integer. Maximum number of inner iterations. Does not apply for method = "admm". Default is 250.}
 
 \item{penalty}{Specification of penalty type. Choices include "gr.lasso", 
 "gr.lasso.infty", "gr.mcp", and "gr.scad"}
@@ -64,6 +54,15 @@ Default is 10^{-4}, which is typically adequate.}
 \item{method}{Algorithm type for overlapping group lasso. Options include "admm" for the Alternating Direction
 Method of Multipliers, "fista" for the Fast Iterative Shrinkage-Thresholding Algorithm. Defaults to "admm". 
 "fista" is recommended when nvars >> nobs. More methods to come.}
+
+\item{eps}{convergence tolerance for ADMM/FISTA iterations for the relative dual and primal residuals. 
+Default is 10^{-4}, which is typically adequate.}
+
+\item{inner.tol}{convergence tolerance for inner iterations. Does not apply for method = "admm". Default is 10^{-3}.}
+
+\item{outer.maxit}{integer. Maximum number of outer (ADMM or FISTA) iterations. Default is 500.}
+
+\item{inner.maxit}{integer. Maximum number of inner iterations. Does not apply for method = "admm". Default is 250.}
 }
 \value{
 An object with S3 class "oglasso.fit"

@@ -52,7 +52,7 @@ protected:
     
     Vector XY;                    // X'Y
     MatrixXd XX;                  // X'X
-    SpMat CC;                     // C'C diagonal
+    VectorXd CC;                  // C'C diagonal
     VectorXd Cbeta;               // C * beta
     VectorXd savedEigs;           // saved eigenvalues
     VectorXd group_weights;       // group weight multipliers
@@ -104,7 +104,7 @@ protected:
     // y -> A'y
     void At_mult(Vector &res, Vector &y)  { res.swap(y); }
     // z -> Bz
-    void B_mult (Vector &res, SparseVector &z) { res = -z; }
+    void B_mult (Vector &res, Vector &z) { res = -z; }
     // ||c||_2
     double c_norm() { return 0.0; }
     
@@ -298,7 +298,7 @@ public:
         //XX.diagonal().array() += rho;
         
         MatrixXd matToSolve(XX);
-        matToSolve += rho * CC;
+        matToSolve.diagonal() += rho * CC;
         
         // precompute LLT decomposition of (X'X + rho * D'D)
         solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
@@ -337,7 +337,7 @@ public:
         }
         
         MatrixXd matToSolve(XX);
-        matToSolve += rho * CC;
+        matToSolve.diagonal() += rho * CC;
         
         // precompute LLT decomposition of (X'X + rho * C'C)
         solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
@@ -354,12 +354,12 @@ public:
     
     virtual VectorXd get_z() { 
         VectorXd beta_return(nvars);
-        for (int k=0; k < CC.outerSize(); ++k)
+        for (int k=0; k < CCol.outerSize(); ++k)
         {
             int rowidx;
             bool current_zero = false;
             bool already_idx = false;
-            for (SparseMatrix<double>::InnerIterator it(CC,k); it; ++it)
+            for (SparseMatrix<double>::InnerIterator it(CCol,k); it; ++it)
             {
                 
                 if (aux_z(it.row()) == 0.0 && !current_zero)
@@ -378,6 +378,7 @@ public:
         }
         return beta_return; 
     }
+    
 };
 
 

@@ -49,8 +49,6 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
                                    SEXP lambda_min_ratio_,
                                    SEXP group_weights_,
                                    SEXP group_idx_,
-                                   SEXP nvars_,
-                                   SEXP nobs_,
                                    SEXP ngroups_,
                                    SEXP standardize_,
                                    SEXP intercept_,
@@ -110,8 +108,6 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     const MapVec group_weights(as<MapVec>(group_weights_));
     IntegerVector group_idx(group_idx_);
     
-    const int nobs(as<int>(nobs_));
-    const int nvars(as<int>(nvars_));
     const int ngroups(as<int>(ngroups_));
     
     // total size of all groups
@@ -120,23 +116,23 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     // create C matrix
     //   C_{i,j} = 1 if y_i is a replicate of x_j
     //           = 0 otherwise 
-    Eigen::SparseMatrix<double,Eigen::RowMajor> C(Eigen::SparseMatrix<double,Eigen::RowMajor>(M, nvars));
+    Eigen::SparseMatrix<double,Eigen::RowMajor> C(Eigen::SparseMatrix<double,Eigen::RowMajor>(M, p));
     C.reserve(VectorXi::Constant(M,1));
     createC(C, group, M);
-    
     
     
     DataStd<double> datstd(n, p, standardize, intercept);
     datstd.standardize(datX, datY);
     
     ADMMogLassoTall *solver_tall;
-    //ADMMGenLassoWide *solver_wide;
+    //ADMMogLassoWide *solver_wide;
     
     if(n > 2 * p)
     {
         solver_tall = new ADMMogLassoTall(datX, datY, C, n, p, M, ngroups, 
                                           family, group_weights, group_idx, 
-                                          dynamic_rho, irls_tol, irls_maxit, eps_abs, eps_rel);
+                                          dynamic_rho, irls_tol, irls_maxit, 
+                                          eps_abs, eps_rel);
     }
     else
     {
@@ -152,9 +148,9 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
         }
         else
         {
-            lmax = solver_tall->get_lambda_zero() / n * datstd.get_scaleY();
+            //lmax = solver_wide->get_lambda_zero() / n * datstd.get_scaleY();
         }
-        //lmax = solver_wide->get_lambda_zero() / n * datstd.get_scaleY();
+        
         double lmin = as<double>(lambda_min_ratio_) * lmax;
         lambda.setLinSpaced(as<int>(nlambda_), std::log(lmax), std::log(lmin));
         lambda = lambda.exp();
@@ -178,15 +174,14 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
             
             niter[i] = solver_tall->solve(maxit);
             VectorXd res = solver_tall->get_z();
-            //VectorXd restrue = solver_tall->get_x();
             double beta0 = 0.0;
             double beta0a = 0.0;
-            //datstd.recover(beta0, restrue);
+            
             datstd.recover(beta0a, res);
-            //write_beta_matrix(beta, i, beta0, restrue);
+            
             beta(0,i) = beta0;
             beta.block(1, i, p, 1) = res;
-            //write_beta_matrix(beta_aug, i, beta0a, res);
+            
         } else {
             /*
             if(i == 0)

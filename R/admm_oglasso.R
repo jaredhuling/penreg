@@ -133,8 +133,9 @@ oglasso <- function(x, y, group,
     }
     
     irls.tol    <- as.double(irls.tol)
-    eps         <- as.double(eps)
     inner.tol   <- as.double(inner.tol)
+    abs.tol     <- as.double(abs.tol)
+    rel.tol     <- as.double(rel.tol)
     dynamic.rho <- as.logical(dynamic.rho)
     irls.maxit  <- as.integer(irls.maxit)
     outer.maxit <- as.integer(outer.maxit)

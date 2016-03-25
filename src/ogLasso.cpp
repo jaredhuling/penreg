@@ -49,20 +49,11 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
                                    SEXP lambda_min_ratio_,
                                    SEXP group_weights_,
                                    SEXP group_idx_,
-                                   SEXP method_,
-                                   SEXP irls_tol_,
-                                   SEXP eps_,
-                                   SEXP inner_tol_,
-                                   SEXP irls_maxit_,
-                                   SEXP outer_maxit_,
-                                   SEXP inner_maxit_,
                                    SEXP nvars_,
                                    SEXP nobs_,
                                    SEXP ngroups_,
-                                   SEXP compute_lambda_,
                                    SEXP standardize_,
                                    SEXP intercept_,
-                                   SEXP dynamic_rho_,
                                    SEXP opts_)
 {
     BEGIN_RCPP
@@ -104,25 +95,22 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     int nlambda = lambda.size();
     
     List opts(opts_);
-    const int maxit        = as<int>(opts["maxit"]);
-    const double eps_abs   = as<double>(opts["eps_abs"]);
-    const double eps_rel   = as<double>(opts["eps_rel"]);
-    const double rho       = as<double>(opts["rho"]);
-    const bool standardize = as<bool>(standardize_);
-    const bool intercept   = as<bool>(intercept_);
+    const int maxit          = as<int>(opts["maxit"]);
+    const int irls_maxit     = as<int>(opts["irls_maxit"]);
+    const double irls_tol    = as<double>(opts["irls_tol"]);
+    const double eps_abs     = as<double>(opts["eps_abs"]);
+    const double eps_rel     = as<double>(opts["eps_rel"]);
+    const double rho         = as<double>(opts["rho"]);
+    const double dynamic_rho = as<double>(opts["dynamic_rho"]);
+    const bool standardize   = as<bool>(standardize_);
+    const bool intercept     = as<bool>(intercept_);
     
     const SpMat group(as<MSpMat>(group_));
     CharacterVector family(as<CharacterVector>(family_));
     
-    const double inner_tol(as<double>(inner_tol_));
-    const int irls_maxit(as<int>(irls_maxit_));
-    const int outer_maxit(as<int>(outer_maxit_));
-    const int inner_maxit(as<int>(inner_maxit_));
     const int nobs(as<int>(nobs_));
     const int nvars(as<int>(nvars_));
     const int ngroups(as<int>(ngroups_));
-    const bool compute_lambda(as<bool>(compute_lambda_));
-    const bool dynamic_rho(as<bool>(dynamic_rho_));
     
     // total size of all groups
     const int M(group.sum());
@@ -170,9 +158,6 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     }
     
     MatrixXd beta(p + 1, nlambda);
-    SpMat beta_aug(M + 1, nlambda);
-    //beta.reserve(Eigen::VectorXi::Constant(nlambda, std::min(n, p)));
-    beta_aug.reserve(Eigen::VectorXi::Constant(nlambda, std::min(n, M)));
     
     IntegerVector niter(nlambda);
     double ilambda = 0.0;
@@ -223,11 +208,8 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
         //delete solver_wide;
     }
     
-    beta_aug.makeCompressed();
-    
     return List::create(Named("lambda") = lambda,
                         Named("beta") = beta,
-                        Named("beta.aug") = beta_aug,
                         Named("niter") = niter);
     
     END_RCPP

@@ -126,40 +126,43 @@ oglasso <- function(x, y, group,
         x <- as(x, "CsparseMatrix")
         x <- as(x, "dgCMatrix")
     }
-    alpha <- as.double(alpha)
-    gamma <- as.double(gamma)
-    irls.tol <- as.double(irls.tol)
-    eps <- as.double(eps)
-    inner.tol <- as.double(inner.tol)
-    irls.maxit <- as.integer(irls.maxit)
+    irls.tol    <- as.double(irls.tol)
+    eps         <- as.double(eps)
+    inner.tol   <- as.double(inner.tol)
+    dynamic.rho <- as.logical(dynamic.rho)
+    irls.maxit  <- as.integer(irls.maxit)
     outer.maxit <- as.integer(outer.maxit)
     inner.maxit <- as.integer(inner.maxit)
     
     if (is.null(lambda)) {
-        if (lambda.min.ratio >= 1) {
-            stop("lambda.min.ratio should be less than 1")
+        if (lambda.min.ratio >= 1 | lambda.min.ratio <= 0) {
+            stop("lambda.min.ratio should be less than 1 and greater than 0")
         }
         lambda.min.ratio <- as.double(lambda.min.ratio)
-        compute.lambda <- TRUE
-        nlambda <- as.integer(nlambda)
-        lambda <- numeric(1L)
+        nlambda <- as.integer(nlambda)[1]
+        lambda <- numeric(0L)
     } else {
         if (any(lambda < 0)) {
             stop("lambdas should be non-negative")
         }
-        compute.lambda <- FALSE
         lambda <- as.double(rev(sort(lambda)))
         nlambda <- as.integer(length(lambda))
     }
     
+    opts <- list(maxit       = maxit,
+                 eps_abs     = abs.tol,
+                 eps_rel     = rel.tol,
+                 rho         = rho,
+                 dynamic_rho = dynamic.rho,
+                 irls_maxit  = irls.maxit,
+                 irls_tol    = irls.tol)
+    
     fit <- oglasso.fit(family, is.sparse, x, y, group, penalty,
                        nlambda, lambda, lambda.min.ratio,
                        alpha, gamma, group.weights, 
-                       group.idx, method, 
-                       irls.tol, eps, inner.tol, irls.maxit, 
-                       outer.maxit, inner.maxit, nvars, nobs, 
-                       ngroups, compute.lambda,
-                       standardize, intercept, as.logical(dynamic.rho))
+                       group.idx, nvars, nobs, 
+                       ngroups, 
+                       standardize, intercept, opts)
     fit$call = this.call
     fit
 }
@@ -169,11 +172,9 @@ oglasso <- function(x, y, group,
 oglasso.fit <- function(family, is.sparse, x, y, group, penalty, 
                         nlambda, lambda, lambda.min.ratio,
                         alpha, gamma, group.weights, 
-                        group.idx, method, 
-                        irls.tol, eps, inner.tol, irls.maxit, 
-                        outer.maxit, inner.maxit, nvars, nobs, 
-                        ngroups, compute.lambda, 
-                        standardize, intercept, dynamic.rho) {
+                        group.idx, nvars, nobs, 
+                        ngroups,
+                        standardize, intercept, opts) {
     
     if (is.sparse) {
         fit <- .Call("oglasso_fit_sparse", 
@@ -189,19 +190,11 @@ oglasso.fit <- function(family, is.sparse, x, y, group, penalty,
                      gamma_ = gamma,
                      group_weights_ = group.weights,
                      group_idx = group.idx,
-                     method_ = method,
-                     irls_tol_ = irls.tol,
-                     eps_ = eps,
-                     inner_tol_ = inner.tol,
-                     irls_maxit_ = irls.maxit,
-                     outer_maxit_ = outer.maxit,
-                     inner_maxit_ = inner.maxit,
                      nvars_ = nvars,
                      nobs_ = nobs,
                      ngroups_ = ngroups,
-                     compute_lambda_ = compute.lambda,
                      intercept_ = intercept, 
-                     dynamic_rho_ = dynamic.rho,
+                     opts_ = opts,
                      PACKAGE = "oglasso")
     } else {
         fit <- .Call("admm_oglasso_dense", 
@@ -217,20 +210,11 @@ oglasso.fit <- function(family, is.sparse, x, y, group, penalty,
                      gamma_ = gamma,
                      group_weights_ = group.weights,
                      group_idx = group.idx,
-                     method_ = method,
-                     irls_tol_ = irls.tol,
-                     eps_ = eps,
-                     inner_tol_ = inner.tol,
-                     irls_maxit_ = irls.maxit,
-                     outer_maxit_ = outer.maxit,
-                     inner_maxit_ = inner.maxit,
                      nvars_ = nvars,
                      nobs_ = nobs,
                      ngroups_ = ngroups,
-                     compute_lambda_ = compute.lambda,
-                     standardize_ = standardize,
-                     intercept_ = intercept,
-                     dynamic_rho_ = dynamic.rho,
+                     intercept_ = intercept, 
+                     opts_ = opts,
                      PACKAGE = "oglasso")
     }
     class(fit) <- c(class(fit), "oglasso")

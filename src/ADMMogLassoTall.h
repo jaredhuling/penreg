@@ -80,6 +80,7 @@ protected:
         //     lambda * sqrt(beta_1 ^ 2 + beta_2 ^ 2 + ...)
         
         // d is the vector to be thresholded
+        // gammavec is the vector to be written to
         
         int itrs = 0;
         
@@ -129,12 +130,6 @@ protected:
         Vector rhs = XY - CCol.adjoint() * adj_y;
         rhs += rho * (CCol.adjoint() * adj_z); 
         
-        
-        // manual optimization
-        //SparseVector Dtz_tmp = D.adjoint() * adj_z;
-        //for(SparseVector::InnerIterator iter(Dtz_tmp); iter; ++iter)
-        //    rhs[iter.index()] += rho * iter.value();
-        
         res.noalias() = solver.solve(rhs);
     }
     virtual void next_z(Vector &res)
@@ -147,11 +142,6 @@ protected:
     {
         res = Cbeta;
         res -= aux_z;
-        
-        // manual optimization
-        //std::copy(Cbeta.data(), Cbeta.data() + dim_aux, res.data());
-        //for(SparseVector::InnerIterator iter(aux_z); iter; ++iter)
-        //    res[iter.index()] -= iter.value();
     }
     void rho_changed_action() {}
     void update_rho() {}
@@ -203,24 +193,6 @@ protected:
         double r = std::max(Cbeta.norm(), aux_z.norm());
         return r * eps_rel + std::sqrt(double(dim_dual)) * eps_abs;
     }
-    /*
-    double compute_eps_dual()
-    {
-        return dual_y.norm() * eps_rel + std::sqrt(double(dim_main)) * eps_abs;
-    }
-    double compute_resid_dual()
-    {
-        return rho * std::sqrt(diff_squared_norm(aux_z, old_z));
-    }
-    double compute_resid_combined()
-    {
-        // SparseVector tmp = aux_z - adj_z;
-        // return rho * resid_primal * resid_primal + rho * tmp.squaredNorm();
-        
-        // manual optmization
-        return rho * resid_primal * resid_primal + rho * diff_squared_norm(aux_z, adj_z);
-    }
-     */
     
     
 public:
@@ -253,7 +225,7 @@ public:
               group_idx(group_idx_),
               XY(datX.transpose() * datY),
               XX(XtX(datX)),
-              CCol(Eigen::SparseMatrix<double>(M_, nvars_),
+              CCol(Eigen::SparseMatrix<double>(M_, nvars_)),
               Cbeta(C_.rows()),
               lambda0(XY.cwiseAbs().maxCoeff())
     { }
@@ -375,6 +347,33 @@ public:
         // adj_a = 1.0;
         // adj_c = 9999;
         rho_changed_action();
+    }
+    
+    virtual VectorXd get_z() { 
+        VectorXd beta_return(nvars);
+        for (int k=0; k < CC.outerSize(); ++k)
+        {
+            int rowidx;
+            bool current_zero = false;
+            bool already_idx = false;
+            for (SparseMatrix<double>::InnerIterator it(CC,k); it; ++it)
+            {
+                
+                if (aux_z(it.row()) == 0.0 && !current_zero)
+                {
+                    rowidx = it.row();
+                    current_zero = true;
+                } else if (!current_zero && !already_idx)
+                {
+                    rowidx = it.row();
+                    already_idx = true;
+                }
+                
+                
+            }
+            beta_return(k) = aux_z(rowidx);
+        }
+        return beta_return; 
     }
 };
 

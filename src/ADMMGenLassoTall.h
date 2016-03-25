@@ -250,11 +250,11 @@ public:
         
         eps_primal = 0.0;
         eps_dual = 0.0;
-        resid_primal = 9999;
-        resid_dual = 9999;
+        resid_primal = 1e30;
+        resid_dual = 1e30;
         
         adj_a = 1.0;
-        adj_c = 9999;
+        adj_c = 1e30;
         
         rho_changed_action();
     }
@@ -289,8 +289,8 @@ public:
         
         eps_primal = 0.0;
         eps_dual = 0.0;
-        resid_primal = 9999;
-        resid_dual = 9999;
+        resid_primal = 1e30;
+        resid_dual = 1e30;
         
         // adj_a = 1.0;
         // adj_c = 9999;

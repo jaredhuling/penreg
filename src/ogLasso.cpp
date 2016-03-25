@@ -41,29 +41,29 @@ inline void write_beta_matrix(SpMat &betas, int col, double beta0, SpVec &coef)
 }
 
 RcppExport SEXP admm_oglasso_dense(SEXP x_,
-                              SEXP y_,
-                              SEXP group_,
-                              SEXP family_,
-                              SEXP nlambda_,
-                              SEXP lambda_,
-                              SEXP lambda_min_ratio_,
-                              SEXP group_weights_,
-                              SEXP group_idx_,
-                              SEXP method_,
-                              SEXP irls_tol_,
-                              SEXP eps_,
-                              SEXP inner_tol_,
-                              SEXP irls_maxit_,
-                              SEXP outer_maxit_,
-                              SEXP inner_maxit_,
-                              SEXP nvars_,
-                              SEXP nobs_,
-                              SEXP ngroups_,
-                              SEXP compute_lambda_,
-                              SEXP standardize_,
-                              SEXP intercept_,
-                              SEXP dynamic_rho_,
-                              SEXP opts_)
+                                   SEXP y_,
+                                   SEXP group_,
+                                   SEXP family_,
+                                   SEXP nlambda_,
+                                   SEXP lambda_,
+                                   SEXP lambda_min_ratio_,
+                                   SEXP group_weights_,
+                                   SEXP group_idx_,
+                                   SEXP method_,
+                                   SEXP irls_tol_,
+                                   SEXP eps_,
+                                   SEXP inner_tol_,
+                                   SEXP irls_maxit_,
+                                   SEXP outer_maxit_,
+                                   SEXP inner_maxit_,
+                                   SEXP nvars_,
+                                   SEXP nobs_,
+                                   SEXP ngroups_,
+                                   SEXP compute_lambda_,
+                                   SEXP standardize_,
+                                   SEXP intercept_,
+                                   SEXP dynamic_rho_,
+                                   SEXP opts_)
 {
     BEGIN_RCPP
     
@@ -188,16 +188,16 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
                 solver_tall->init_warm(ilambda);
             
             niter[i] = solver_tall->solve(maxit);
-            SpVec res = solver_tall->get_z();
-            VectorXd restrue = solver_tall->get_x();
+            VectorXd res = solver_tall->get_z();
+            //VectorXd restrue = solver_tall->get_x();
             double beta0 = 0.0;
             double beta0a = 0.0;
-            datstd.recover(beta0, restrue);
+            //datstd.recover(beta0, restrue);
             datstd.recover(beta0a, res);
             //write_beta_matrix(beta, i, beta0, restrue);
             beta(0,i) = beta0;
-            beta.block(1, i, p, 1) = restrue;
-            write_beta_matrix(beta_aug, i, beta0a, res);
+            beta.block(1, i, p, 1) = res;
+            //write_beta_matrix(beta_aug, i, beta0a, res);
         } else {
             /*
             if(i == 0)

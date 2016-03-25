@@ -22,7 +22,7 @@ using Rcpp::CharacterVector;
 // b => y
 // f(x) => 1/2 * ||Ax - b||^2
 // g(z) => lambda * ||z||_1
-class ADMMogLassoTall: public FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
+class ADMMogLassoTall: public FADMMBase<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
 {
 protected:
     typedef float Scalar;
@@ -123,6 +123,7 @@ protected:
                 res.insertBack(i) = ptr[i] + penalty;
         }
     }
+    
     void next_x(Vector &res)
     {
         Vector rhs = XY - CCol.adjoint() * adj_y;
@@ -136,21 +137,21 @@ protected:
         
         res.noalias() = solver.solve(rhs);
     }
-    virtual void next_z(SparseVector &res)
+    virtual void next_z(Vector &res)
     {
         Cbeta = CCol * main_x;
         Vector vec = Cbeta + adj_y / rho;
-        soft_threshold(res, vec, lambda / rho);
+        block_soft_threshold(res, vec, lambda, 1/rho);
     }
     void next_residual(Vector &res)
     {
-        // res = Cbeta;
-        // res -= aux_z;
+        res = Cbeta;
+        res -= aux_z;
         
         // manual optimization
-        std::copy(Cbeta.data(), Cbeta.data() + dim_aux, res.data());
-        for(SparseVector::InnerIterator iter(aux_z); iter; ++iter)
-            res[iter.index()] -= iter.value();
+        //std::copy(Cbeta.data(), Cbeta.data() + dim_aux, res.data());
+        //for(SparseVector::InnerIterator iter(aux_z); iter; ++iter)
+        //    res[iter.index()] -= iter.value();
     }
     void rho_changed_action() {}
     void update_rho() {}
@@ -202,6 +203,7 @@ protected:
         double r = std::max(Cbeta.norm(), aux_z.norm());
         return r * eps_rel + std::sqrt(double(dim_dual)) * eps_abs;
     }
+    /*
     double compute_eps_dual()
     {
         return dual_y.norm() * eps_rel + std::sqrt(double(dim_main)) * eps_abs;
@@ -218,6 +220,7 @@ protected:
         // manual optmization
         return rho * resid_primal * resid_primal + rho * diff_squared_norm(aux_z, adj_z);
     }
+     */
     
     
 public:
@@ -233,7 +236,7 @@ public:
                      double newton_tol_ = 1e-5,
                      double eps_abs_ = 1e-6,
                      double eps_rel_ = 1e-6) :
-    FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
+    FADMMBase<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
              (datX_.cols(), C_.rows(), C_.rows(),
               eps_abs_, eps_rel_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
@@ -253,11 +256,27 @@ public:
               CCol(Eigen::SparseMatrix<double>(M_, nvars_),
               Cbeta(C_.rows()),
               lambda0(XY.cwiseAbs().maxCoeff())
+    { }
+                       
+    double get_lambda_zero() const { return lambda0; }
+   
+    // init() is a cold start for the first lambda
+    void init(double lambda_, double rho_)
     {
+        main_x.setZero();
+        aux_z.setZero();
+        dual_y.setZero();
+                  
+        adj_z.setZero();
+        adj_y.setZero();
+        
+        lambda = lambda_;
+        rho = rho_;
+        
         
         // store ColMajor version of C
         CCol = C;
-                  
+        
         // create vector CC, whose elements are the number of times
         // each variable is in a group
         for (int k=0; k < CCol.outerSize(); ++k)
@@ -268,26 +287,7 @@ public:
                 tmp_val += it.value();
             }
             CC(k) = tmp_val;
-        }        
-        
-        
-    }
-                       
-                       double get_lambda_zero() const { return lambda0; }
-                       
-                       // init() is a cold start for the first lambda
-                       void init(double lambda_, double rho_)
-                       {
-                           main_x.setZero();
-                           aux_z.setZero();
-                           dual_y.setZero();
-                           
-        adj_z.setZero();
-        adj_y.setZero();
-        
-        lambda = lambda_;
-        rho = rho_;
-        
+        } 
         
         
         //Linalg::cross_prod_lower(XX, datX);
@@ -330,11 +330,11 @@ public:
         
         eps_primal = 0.0;
         eps_dual = 0.0;
-        resid_primal = 9999;
-        resid_dual = 9999;
+        resid_primal = 1e30;
+        resid_dual = 1e30;
         
         adj_a = 1.0;
-        adj_c = 9999;
+        adj_c = 1e30;
         
         rho_changed_action();
     }
@@ -369,8 +369,8 @@ public:
         
         eps_primal = 0.0;
         eps_dual = 0.0;
-        resid_primal = 9999;
-        resid_dual = 9999;
+        resid_primal = 1e30;
+        resid_dual = 1e30;
         
         // adj_a = 1.0;
         // adj_c = 9999;

@@ -79,6 +79,6 @@ true.beta <- rnorm(n.vars)
 x <- matrix(rnorm(n.obs * n.vars), n.obs, n.vars)
 y <- rnorm(n.obs, sd = 3) + x \%*\% true.beta
 
-fit <- oglasso(x = x, y = y, group=list(c(1,2), c(2,3), c(3,4,5)), penalty = "gr.lasso")
+fit <- oglasso(x = x, y = y, group=list(c(1,2), c(2,3), c(3,4,5)))
 }
 

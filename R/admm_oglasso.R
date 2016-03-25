@@ -132,8 +132,8 @@ oglasso <- function(x, y, group,
         lambda.min.ratio <- ifelse(nrow(x) < ncol(x), 0.01, 0.0001)
     }
     
+    
     irls.tol    <- as.double(irls.tol)
-    inner.tol   <- as.double(inner.tol)
     abs.tol     <- as.double(abs.tol)
     rel.tol     <- as.double(rel.tol)
     dynamic.rho <- as.logical(dynamic.rho)

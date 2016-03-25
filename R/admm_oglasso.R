@@ -61,11 +61,11 @@
 #' fit <- oglasso(x = x, y = y, group=list(c(1,2), c(2,3), c(3,4,5)), penalty = "gr.lasso")
 oglasso <- function(x, y, group, 
                     family = c("gaussian", "binomial"), 
-                    nlambda = 100L, lambda = NULL, lambda.min.ratio = 1e-4, 
+                    nlambda = 100L, lambda = NULL, lambda.min.ratio = NULL, 
                     group.weights = NULL,
                     standardize = TRUE, intercept = TRUE, dynamic.rho = TRUE,
-                    irls.tol = 1e-7, eps = 1e-4, inner.tol = 1e-3, 
-                    irls.maxit = 100L, outer.maxit = 500L, inner.maxit = 250L) {
+                    abs.tol = 1e-5, rel.tol = 1e-5, irls.tol = 1e-5, 
+                    irls.maxit = 100L) {
     
     family <- match.arg(family)
     this.call = match.call()
@@ -126,6 +126,12 @@ oglasso <- function(x, y, group,
         x <- as(x, "CsparseMatrix")
         x <- as(x, "dgCMatrix")
     }
+    
+    if(is.null(lambda.min.ratio))
+    {
+        lambda.min.ratio <- ifelse(nrow(x) < ncol(x), 0.01, 0.0001)
+    }
+    
     irls.tol    <- as.double(irls.tol)
     eps         <- as.double(eps)
     inner.tol   <- as.double(inner.tol)
@@ -133,6 +139,7 @@ oglasso <- function(x, y, group,
     irls.maxit  <- as.integer(irls.maxit)
     outer.maxit <- as.integer(outer.maxit)
     inner.maxit <- as.integer(inner.maxit)
+    
     
     if (is.null(lambda)) {
         if (lambda.min.ratio >= 1 | lambda.min.ratio <= 0) {

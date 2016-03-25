@@ -61,6 +61,7 @@ protected:
     
     LLT solver;                   // matrix factorization
     double newton_tol;            // tolerance for newton iterations
+    int newton_maxit;             // max # iterations for newton-raphson
     bool dynamic_rho;
     bool rho_unspecified;         // was rho unspecified? if so, we must set it
     
@@ -204,8 +205,9 @@ public:
                      Rcpp::CharacterVector family_,
                      VectorXd group_weights_,
                      Rcpp::IntegerVector group_idx_,
-                     double eps_, bool dynamic_rho_,
+                     bool dynamic_rho_,
                      double newton_tol_ = 1e-5,
+                     int newton_maxit_ = 100,
                      double eps_abs_ = 1e-6,
                      double eps_rel_ = 1e-6) :
     FADMMBase<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
@@ -219,6 +221,7 @@ public:
               M(M_),
               ngroups(ngroups_),
               newton_tol(newton_tol_),
+              newton_maxit(newton_maxit_),
               dynamic_rho(dynamic_rho_),
               group_weights(group_weights_),
               family(family_),

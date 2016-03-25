@@ -2,8 +2,8 @@
 
 #define EIGEN_DONT_PARALLELIZE
 
-#include "ADMMGenLassoTall.h"
-//#include "ADMMGenLassoWide.h"
+#include "ADMMogLassoTall.h"
+//#include "ADMMogLassoWide.h"
 #include "DataStd.h"
 
 using Eigen::MatrixXf;
@@ -107,6 +107,8 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     
     const SpMat group(as<MSpMat>(group_));
     CharacterVector family(as<CharacterVector>(family_));
+    const MapVec group_weights(as<MapVec>(group_weights_));
+    IntegerVector group_idx(group_idx_);
     
     const int nobs(as<int>(nobs_));
     const int nvars(as<int>(nvars_));
@@ -127,22 +129,24 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     DataStd<double> datstd(n, p, standardize, intercept);
     datstd.standardize(datX, datY);
     
-    ADMMGenLassoTall *solver_tall;
+    ADMMogLassoTall *solver_tall;
     //ADMMGenLassoWide *solver_wide;
     
-    if(n > p)
+    if(n > 2 * p)
     {
-        solver_tall = new ADMMGenLassoTall(datX, datY, C, eps_abs, eps_rel);
+        solver_tall = new ADMMogLassoTall(datX, datY, C, n, p, M, ngroups, 
+                                          family, group_weights, group_idx, 
+                                          dynamic_rho, irls_tol, irls_maxit, eps_abs, eps_rel);
     }
     else
     {
-        //solver_wide = new ADMMGenLassoWide(datX, datY, eps_abs, eps_rel);
+        //solver_wide = new ADMMogLassoWide(datX, datY, eps_abs, eps_rel);
     }
     
     if(nlambda < 1)
     {
         double lmax = 0.0;
-        if(n > p)
+        if(n > 2 * p)
         {
             lmax = solver_tall->get_lambda_zero() / n * datstd.get_scaleY();
         }
@@ -165,7 +169,7 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     for(int i = 0; i < nlambda; i++)
     {
         ilambda = lambda[i] * n / datstd.get_scaleY();
-        if(n > p)
+        if(n > 2 * p)
         {
             if(i == 0)
                 solver_tall->init(ilambda, rho);

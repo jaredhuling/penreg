@@ -6,8 +6,9 @@
 \usage{
 oglasso(x, y, group, family = c("gaussian", "binomial"), nlambda = 100L,
   lambda = NULL, lambda.min.ratio = NULL, group.weights = NULL,
-  standardize = TRUE, intercept = TRUE, dynamic.rho = TRUE,
-  abs.tol = 1e-05, rel.tol = 1e-05, irls.tol = 1e-05, irls.maxit = 100L)
+  standardize = TRUE, intercept = TRUE, rho = NULL, dynamic.rho = TRUE,
+  maxit = 500L, abs.tol = 1e-05, rel.tol = 1e-05, irls.tol = 1e-05,
+  irls.maxit = 100L)
 }
 \arguments{
 \item{x}{input matrix or SparseMatrix of dimension nobs \times nvars. Each row is an observation, 

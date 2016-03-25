@@ -59,13 +59,23 @@
 #' y <- rnorm(n.obs, sd = 3) + x %*% true.beta
 #' 
 #' fit <- oglasso(x = x, y = y, group=list(c(1,2), c(2,3), c(3,4,5)))
-oglasso <- function(x, y, group, 
-                    family = c("gaussian", "binomial"), 
-                    nlambda = 100L, lambda = NULL, lambda.min.ratio = NULL, 
-                    group.weights = NULL,
-                    standardize = TRUE, intercept = TRUE, dynamic.rho = TRUE,
-                    abs.tol = 1e-5, rel.tol = 1e-5, irls.tol = 1e-5, 
-                    irls.maxit = 100L) {
+oglasso <- function(x, y, 
+                    group, 
+                    family           = c("gaussian", "binomial"), 
+                    nlambda          = 100L, 
+                    lambda           = NULL, 
+                    lambda.min.ratio = NULL, 
+                    group.weights    = NULL,
+                    standardize      = TRUE, 
+                    intercept        = TRUE, 
+                    rho              = NULL,
+                    dynamic.rho      = TRUE,
+                    maxit            = 500L,
+                    abs.tol          = 1e-5, 
+                    rel.tol          = 1e-5, 
+                    irls.tol         = 1e-5, 
+                    irls.maxit       = 100L) 
+{
     
     family <- match.arg(family)
     this.call = match.call()
@@ -76,6 +86,11 @@ oglasso <- function(x, y, group,
     dimy <- dim(y)
     leny <- ifelse(is.null(dimy), length(y), dimy[1])
     stopifnot(leny == nobs)
+    
+    if(isTRUE(rho <= 0))
+    {
+        stop("rho should be positive")
+    }
     
     if (missing(group)) {
         stop("Must specify group structure.")
@@ -138,7 +153,7 @@ oglasso <- function(x, y, group,
     rel.tol     <- as.double(rel.tol)
     dynamic.rho <- as.logical(dynamic.rho)
     irls.maxit  <- as.integer(irls.maxit)
-    
+    rho         <- if(is.null(rho))  -1.0  else  as.numeric(rho)
     
     if (is.null(lambda)) {
         if (lambda.min.ratio >= 1 | lambda.min.ratio <= 0) {
@@ -163,7 +178,7 @@ oglasso <- function(x, y, group,
                  irls_maxit  = irls.maxit,
                  irls_tol    = irls.tol)
     
-    fit <- oglasso.fit(family, is.sparse, x, y, group, penalty,
+    fit <- oglasso.fit(family, is.sparse, x, y, group,
                        nlambda, lambda, lambda.min.ratio,
                        alpha, gamma, group.weights, 
                        group.idx,
@@ -175,7 +190,7 @@ oglasso <- function(x, y, group,
 
 
 
-oglasso.fit <- function(family, is.sparse, x, y, group, penalty, 
+oglasso.fit <- function(family, is.sparse, x, y, group,  
                         nlambda, lambda, lambda.min.ratio,
                         alpha, gamma, group.weights, 
                         group.idx,
@@ -188,7 +203,6 @@ oglasso.fit <- function(family, is.sparse, x, y, group, penalty,
                      y_ = y,
                      group_ = group,
                      family_ = family,
-                     penalty_ = penalty,
                      nlambda_ = nlambda,
                      lambda_ = lambda,
                      lambda_min_ratio_ = lambda.min.ratio,
@@ -197,14 +211,13 @@ oglasso.fit <- function(family, is.sparse, x, y, group, penalty,
                      ngroups_ = ngroups,
                      intercept_ = intercept, 
                      opts_ = opts,
-                     PACKAGE = "oglasso")
+                     PACKAGE = "penreg")
     } else {
         fit <- .Call("admm_oglasso_dense", 
                      x_ = x,
                      y_ = y,
                      group_ = group,
                      family_ = family,
-                     penalty_ = penalty,
                      nlambda_ = nlambda,
                      lambda_ = lambda,
                      lambda_min_ratio_ = lambda.min.ratio,
@@ -213,7 +226,7 @@ oglasso.fit <- function(family, is.sparse, x, y, group, penalty,
                      ngroups_ = ngroups,
                      intercept_ = intercept, 
                      opts_ = opts,
-                     PACKAGE = "oglasso")
+                     PACKAGE = "penreg")
     }
     class(fit) <- c(class(fit), "oglasso")
     fit

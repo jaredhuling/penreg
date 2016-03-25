@@ -229,6 +229,7 @@ public:
               XY(datX.transpose() * datY),
               XX(XtX(datX)),
               CCol(Eigen::SparseMatrix<double>(M_, nvars_)),
+              CC(nvars_),
               Cbeta(C_.rows()),
               lambda0(XY.cwiseAbs().maxCoeff())
     { }
@@ -263,7 +264,6 @@ public:
             }
             CC(k) = tmp_val;
         } 
-        
         
         //Linalg::cross_prod_lower(XX, datX);
         

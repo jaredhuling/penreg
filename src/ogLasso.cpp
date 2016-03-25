@@ -127,6 +127,7 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     ADMMogLassoTall *solver_tall;
     //ADMMogLassoWide *solver_wide;
     
+    
     if(n > 2 * p)
     {
         solver_tall = new ADMMogLassoTall(datX, datY, C, n, p, M, ngroups, 

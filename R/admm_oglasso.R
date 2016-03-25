@@ -138,8 +138,6 @@ oglasso <- function(x, y, group,
     rel.tol     <- as.double(rel.tol)
     dynamic.rho <- as.logical(dynamic.rho)
     irls.maxit  <- as.integer(irls.maxit)
-    outer.maxit <- as.integer(outer.maxit)
-    inner.maxit <- as.integer(inner.maxit)
     
     
     if (is.null(lambda)) {

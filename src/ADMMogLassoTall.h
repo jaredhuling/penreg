@@ -7,6 +7,9 @@
 #include "ADMMMatOp.h"
 #include "utils.h"
 
+using Rcpp::IntegerVector;
+using Rcpp::CharacterVector;
+
 // minimize  1/2 * ||y - X * beta||^2 + lambda * ||beta||_1
 //
 // In ADMM form,
@@ -32,24 +35,66 @@ protected:
     typedef const Eigen::Ref<const Matrix> ConstGenericMatrix;
     typedef const Eigen::Ref<const Vector> ConstGenericVector;
     typedef Eigen::SparseMatrix<double> SpMat;
+    typedef Eigen::SparseMatrix<int, Eigen::RowMajor> SpMatIntR;
     typedef Eigen::SparseVector<double> SparseVector;
     typedef Eigen::LLT<Matrix> LLT;
     
     MapMat datX;                  // data matrix
     MapVec datY;                  // response vector
-    const SpMat D;
+    const SpMatR C;               // pointer to C matrix
+    //const MapVec D;             // pointer D vector
+    // VectorXd D;
+    
+    int nobs;                 // number of observations
+    int nvars;                // number of variables
+    int ngroups;              // number of groups
+    int M;                    // length of nu (total size of all groups)
     
     Vector XY;                    // X'Y
     MatrixXd XX;                  // X'X
-    SpMat DD;                     // D'D
-    VectorXd Dbeta;               // D * beta
+    SpMat CC;                     // C'C diagonal
+    VectorXd Cbeta;               // C * beta
     VectorXd savedEigs;           // saved eigenvalues
+    VectorXd group_weights;       // group weight multipliers
+    CharacterVector family;       // model family (gaussian, binomial, or Cox PH)
+    IntegerVector group_idx;      // indices of groups
+    
     LLT solver;                   // matrix factorization
-    bool rho_unspecified;          // was rho unspecified? if so, we must set it
+    double newton_tol;            // tolerance for newton iterations
+    bool dynamic_rho;
+    bool rho_unspecified;         // was rho unspecified? if so, we must set it
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
     
+    //Eigen::DiagonalMatrix<double, Eigen::Dynamic> one_over_D_diag; // diag(1/D)
+    SparseMatrix<double,Eigen::ColMajor> CCol;
+    
+    
+    virtual void block_soft_threshold(VectorXd &gammavec, VectorXd &d, 
+                                      const double &lam, const double &step_size) 
+    {
+        // This thresholding function is for the most
+        // basic overlapping group penalty, the 
+        // l1/l2 norm penalty, ie 
+        //     lambda * sqrt(beta_1 ^ 2 + beta_2 ^ 2 + ...)
+        
+        // d is the vector to be thresholded
+        
+        int itrs = 0;
+        
+        for (int g = 0; g < ngroups; ++g) 
+        {
+            double ds_norm = (d.segment(group_idx(g), group_idx(g+1) - group_idx(g))).norm();
+            double thresh_factor = std::max(0.0, 1 - step_size * lam * group_weights(g) / (ds_norm) );
+            
+            for (int gr = group_idx(g); gr < group_idx(g+1); ++gr) 
+            {
+                gammavec(itrs) = thresh_factor * d(gr);
+                ++itrs;
+            }
+        }
+    }   
     
     
     // x -> Ax
@@ -80,8 +125,8 @@ protected:
     }
     void next_x(Vector &res)
     {
-        Vector rhs = XY - D.adjoint() * adj_y;
-        rhs += rho * (D.adjoint() * adj_z); 
+        Vector rhs = XY - CCol.adjoint() * adj_y;
+        rhs += rho * (CCol.adjoint() * adj_z); 
         
         
         // manual optimization
@@ -93,17 +138,17 @@ protected:
     }
     virtual void next_z(SparseVector &res)
     {
-        Dbeta = D * main_x;
-        Vector vec = Dbeta + adj_y / rho;
+        Cbeta = CCol * main_x;
+        Vector vec = Cbeta + adj_y / rho;
         soft_threshold(res, vec, lambda / rho);
     }
     void next_residual(Vector &res)
     {
-        // res = Dbeta;
+        // res = Cbeta;
         // res -= aux_z;
         
         // manual optimization
-        std::copy(Dbeta.data(), Dbeta.data() + dim_aux, res.data());
+        std::copy(Cbeta.data(), Cbeta.data() + dim_aux, res.data());
         for(SparseVector::InnerIterator iter(aux_z); iter; ++iter)
             res[iter.index()] -= iter.value();
     }
@@ -154,7 +199,7 @@ protected:
     // Faster computation of epsilons and residuals
     double compute_eps_primal()
     {
-        double r = std::max(Dbeta.norm(), aux_z.norm());
+        double r = std::max(Cbeta.norm(), aux_z.norm());
         return r * eps_rel + std::sqrt(double(dim_dual)) * eps_abs;
     }
     double compute_eps_dual()
@@ -174,34 +219,69 @@ protected:
         return rho * resid_primal * resid_primal + rho * diff_squared_norm(aux_z, adj_z);
     }
     
+    
 public:
     ADMMogLassoTall(ConstGenericMatrix &datX_, 
                      ConstGenericVector &datY_,
-                     const SpMatR &D_,
+                     const SpMatR &C_,// const VectorXd &D_, 
+                     int nobs_, int nvars_, int M_,
+                     int ngroups_,
+                     Rcpp::CharacterVector family_,
+                     VectorXd group_weights_,
+                     Rcpp::IntegerVector group_idx_,
+                     double eps_, bool dynamic_rho_,
+                     double newton_tol_ = 1e-5,
                      double eps_abs_ = 1e-6,
                      double eps_rel_ = 1e-6) :
     FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
-             (datX_.cols(), D_.rows(), D_.rows(),
+             (datX_.cols(), C_.rows(), C_.rows(),
               eps_abs_, eps_rel_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
-              D(D_),
+              C(C_),
+              nobs(nobs_),
+              nvars(nvars_),
+              M(M_),
+              ngroups(ngroups_),
+              newton_tol(newton_tol_),
+              dynamic_rho(dynamic_rho_),
+              group_weights(group_weights_),
+              family(family_),
+              group_idx(group_idx_),
               XY(datX.transpose() * datY),
               XX(XtX(datX)),
-              DD(XtX(D)),
-              Dbeta(D_.rows()),
+              CCol(Eigen::SparseMatrix<double>(M_, nvars_),
+              Cbeta(C_.rows()),
               lambda0(XY.cwiseAbs().maxCoeff())
-    {}
-    
-    double get_lambda_zero() const { return lambda0; }
-    
-    // init() is a cold start for the first lambda
-    void init(double lambda_, double rho_)
     {
-        main_x.setZero();
-        aux_z.setZero();
-        dual_y.setZero();
         
+        // store ColMajor version of C
+        CCol = C;
+                  
+        // create vector CC, whose elements are the number of times
+        // each variable is in a group
+        for (int k=0; k < CCol.outerSize(); ++k)
+        {
+            double tmp_val = 0;
+            for (SparseMatrix<double>::InnerIterator it(CCol,k); it; ++it)
+            { 
+                tmp_val += it.value();
+            }
+            CC(k) = tmp_val;
+        }        
+        
+        
+    }
+                       
+                       double get_lambda_zero() const { return lambda0; }
+                       
+                       // init() is a cold start for the first lambda
+                       void init(double lambda_, double rho_)
+                       {
+                           main_x.setZero();
+                           aux_z.setZero();
+                           dual_y.setZero();
+                           
         adj_z.setZero();
         adj_y.setZero();
         
@@ -243,7 +323,7 @@ public:
         //XX.diagonal().array() += rho;
         
         MatrixXd matToSolve(XX);
-        matToSolve += rho * DD;
+        matToSolve += rho * CC;
         
         // precompute LLT decomposition of (X'X + rho * D'D)
         solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
@@ -282,9 +362,9 @@ public:
         }
         
         MatrixXd matToSolve(XX);
-        matToSolve += rho * DD;
+        matToSolve += rho * CC;
         
-        // precompute LLT decomposition of (X'X + rho * D'D)
+        // precompute LLT decomposition of (X'X + rho * C'C)
         solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
         
         eps_primal = 0.0;

@@ -204,7 +204,7 @@ oglasso.fit <- function(family, is.sparse, x, y, group, penalty,
                      dynamic_rho_ = dynamic.rho,
                      PACKAGE = "oglasso")
     } else {
-        fit <- .Call("oglasso_fit_dense", 
+        fit <- .Call("admm_oglasso_dense", 
                      x_ = x,
                      y_ = y,
                      group_ = group,

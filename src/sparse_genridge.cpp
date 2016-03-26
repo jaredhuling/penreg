@@ -159,7 +159,7 @@ BEGIN_RCPP
                 solver_tall->init_warm(ilambda * alpha);
 
             niter[i] = solver_tall->solve(maxit);
-            SpVec res = solver_tall->get_z();
+            SpVec res = solver_tall->get_gamma();
             double beta0 = 0.0;
             datstd.recover(beta0, res);
             write_beta_matrix(beta, i, beta0, res);
@@ -171,7 +171,7 @@ BEGIN_RCPP
                 solver_wide->init_warm(ilambda * alpha);
 
             niter[i] = solver_wide->solve(maxit);
-            SpVec res = solver_wide->get_z(); //used to be get_z();
+            SpVec res = solver_wide->get_gamma(); //used to be get_z();
             double beta0 = 0.0;
             datstd.recover(beta0, res);
             write_beta_matrix(beta, i, beta0, res);

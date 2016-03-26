@@ -113,7 +113,6 @@ BEGIN_RCPP
             lmax = solver_tall->get_lambda_zero() / n * datstd.get_scaleY();
         } else
         {
-            lmax = solver_tall->get_lambda_zero() / n * datstd.get_scaleY();
             lmax = solver_wide->get_lambda_zero() / n * datstd.get_scaleY();
         }
         double lmin = as<double>(lmin_ratio_) * lmax;
@@ -140,7 +139,7 @@ BEGIN_RCPP
                 solver_tall->init_warm(ilambda);
 
             niter[i] = solver_tall->solve(maxit);
-            SpVec res = solver_tall->get_z();
+            SpVec res = solver_tall->get_gamma();
             double beta0 = 0.0;
             datstd.recover(beta0, res);
             write_beta_matrix(beta, i, beta0, res);
@@ -152,7 +151,7 @@ BEGIN_RCPP
                 solver_wide->init_warm(ilambda, i);
 
             niter[i] = solver_wide->solve(maxit);
-            SpVec res = solver_wide->get_x();
+            SpVec res = solver_wide->get_beta();
             double beta0 = 0.0;
             datstd.recover(beta0, res);
             write_beta_matrix(beta, i, beta0, res);

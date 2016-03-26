@@ -100,11 +100,11 @@ protected:
     
     
     // x -> Ax
-    void A_mult (Vector &res, Vector &x)  { res.swap(x); }
+    void A_mult (Vector &res, Vector &beta)  { res.swap(beta); }
     // y -> A'y
-    void At_mult(Vector &res, Vector &y)  { res.swap(y); }
+    void At_mult(Vector &res, Vector &nu)  { res.swap(nu); }
     // z -> Bz
-    void B_mult (Vector &res, Vector &z) { res = -z; }
+    void B_mult (Vector &res, Vector &gamma) { res = -gamma; }
     // ||c||_2
     double c_norm() { return 0.0; }
     
@@ -126,23 +126,23 @@ protected:
         }
     }
     
-    void next_x(Vector &res)
+    void next_beta(Vector &res)
     {
-        Vector rhs = XY - CCol.adjoint() * adj_y;
-        rhs += rho * (CCol.adjoint() * adj_z); 
+        Vector rhs = XY - CCol.adjoint() * adj_nu;
+        rhs += rho * (CCol.adjoint() * adj_gamma); 
         
         res.noalias() = solver.solve(rhs);
     }
-    virtual void next_z(Vector &res)
+    virtual void next_gamma(Vector &res)
     {
-        Cbeta = CCol * main_x;
-        Vector vec = Cbeta + adj_y / rho;
+        Cbeta = CCol * main_beta;
+        Vector vec = Cbeta + adj_nu / rho;
         block_soft_threshold(res, vec, lambda, 1/rho);
     }
     void next_residual(Vector &res)
     {
         res = Cbeta;
-        res -= aux_z;
+        res -= aux_gamma;
     }
     void rho_changed_action() {}
     void update_rho() {}
@@ -191,7 +191,7 @@ protected:
     // Faster computation of epsilons and residuals
     double compute_eps_primal()
     {
-        double r = std::max(Cbeta.norm(), aux_z.norm());
+        double r = std::max(Cbeta.norm(), aux_gamma.norm());
         return r * eps_rel + std::sqrt(double(dim_dual)) * eps_abs;
     }
     
@@ -239,12 +239,12 @@ public:
     // init() is a cold start for the first lambda
     void init(double lambda_, double rho_)
     {
-        main_x.setZero();
-        aux_z.setZero();
-        dual_y.setZero();
+        main_beta.setZero();
+        aux_gamma.setZero();
+        dual_nu.setZero();
                   
-        adj_z.setZero();
-        adj_y.setZero();
+        adj_gamma.setZero();
+        adj_nu.setZero();
         
         lambda = lambda_;
         rho = rho_;
@@ -314,7 +314,7 @@ public:
         rho_changed_action();
     }
     // when computing for the next lambda, we can use the
-    // current main_x, aux_z, dual_y and rho as initial values
+    // current main_beta, aux_gamma, dual_nu and rho as initial values
     void init_warm(double lambda_)
     {
         lambda = lambda_;
@@ -351,7 +351,7 @@ public:
         rho_changed_action();
     }
     
-    virtual VectorXd get_z() { 
+    virtual VectorXd get_gamma() { 
         VectorXd beta_return(nvars);
         for (int k=0; k < CCol.outerSize(); ++k)
         {
@@ -361,7 +361,7 @@ public:
             for (SparseMatrix<double>::InnerIterator it(CCol,k); it; ++it)
             {
                 
-                if (aux_z(it.row()) == 0.0 && !current_zero)
+                if (aux_gamma(it.row()) == 0.0 && !current_zero)
                 {
                     rowidx = it.row();
                     current_zero = true;
@@ -373,7 +373,7 @@ public:
                 
                 
             }
-            beta_return(k) = aux_z(rowidx);
+            beta_return(k) = aux_gamma(rowidx);
         }
         return beta_return; 
     }

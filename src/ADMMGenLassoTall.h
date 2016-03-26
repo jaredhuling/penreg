@@ -53,17 +53,17 @@ protected:
     
     
     // x -> Ax
-    void A_mult (Vector &res, Vector &x)  { res.swap(x); }
+    void A_mult (Vector &res, Vector &beta)  { res.swap(beta); }
     // y -> A'y
-    void At_mult(Vector &res, Vector &y)  { res.swap(y); }
+    void At_mult(Vector &res, Vector &nu)  { res.swap(nu); }
     // z -> Bz
-    void B_mult (Vector &res, SparseVector &z) { res = -z; }
+    void B_mult (Vector &res, SparseVector &gamma) { res = -gamma; }
     // ||c||_2
     double c_norm() { return 0.0; }
     
     
     
-    static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty)
+static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty)
     {
         int v_size = vec.size();
         res.setZero();
@@ -78,33 +78,33 @@ protected:
                 res.insertBack(i) = ptr[i] + penalty;
         }
     }
-    void next_x(Vector &res)
+    void next_beta(Vector &res)
     {
-        Vector rhs = XY - D.adjoint() * adj_y;
-        rhs += rho * (D.adjoint() * adj_z); 
+        Vector rhs = XY - D.adjoint() * adj_nu;
+        rhs += rho * (D.adjoint() * adj_gamma); 
         
         
         // manual optimization
-        //SparseVector Dtz_tmp = D.adjoint() * adj_z;
+        //SparseVector Dtz_tmp = D.adjoint() * adj_gamma;
         //for(SparseVector::InnerIterator iter(Dtz_tmp); iter; ++iter)
         //    rhs[iter.index()] += rho * iter.value();
         
         res.noalias() = solver.solve(rhs);
     }
-    virtual void next_z(SparseVector &res)
+    virtual void next_gamma(SparseVector &res)
     {
-        Dbeta = D * main_x;
-        Vector vec = Dbeta + adj_y / rho;
+        Dbeta = D * main_beta;
+        Vector vec = Dbeta + adj_nu / rho;
         soft_threshold(res, vec, lambda / rho);
     }
     void next_residual(Vector &res)
     {
         // res = Dbeta;
-        // res -= aux_z;
+        // res -= aux_gamma;
         
         // manual optimization
         std::copy(Dbeta.data(), Dbeta.data() + dim_aux, res.data());
-        for(SparseVector::InnerIterator iter(aux_z); iter; ++iter)
+        for(SparseVector::InnerIterator iter(aux_gamma); iter; ++iter)
             res[iter.index()] -= iter.value();
     }
     void rho_changed_action() {}
@@ -154,24 +154,24 @@ protected:
     // Faster computation of epsilons and residuals
     double compute_eps_primal()
     {
-        double r = std::max(Dbeta.norm(), aux_z.norm());
+        double r = std::max(Dbeta.norm(), aux_gamma.norm());
         return r * eps_rel + std::sqrt(double(dim_dual)) * eps_abs;
     }
     double compute_eps_dual()
     {
-        return dual_y.norm() * eps_rel + std::sqrt(double(dim_main)) * eps_abs;
+        return dual_nu.norm() * eps_rel + std::sqrt(double(dim_main)) * eps_abs;
     }
     double compute_resid_dual()
     {
-        return rho * std::sqrt(diff_squared_norm(aux_z, old_z));
+        return rho * std::sqrt(diff_squared_norm(aux_gamma, old_gamma));
     }
     double compute_resid_combined()
     {
-        // SparseVector tmp = aux_z - adj_z;
+        // SparseVector tmp = aux_gamma - adj_gamma;
         // return rho * resid_primal * resid_primal + rho * tmp.squaredNorm();
         
         // manual optmization
-        return rho * resid_primal * resid_primal + rho * diff_squared_norm(aux_z, adj_z);
+        return rho * resid_primal * resid_primal + rho * diff_squared_norm(aux_gamma, adj_gamma);
     }
     
 public:
@@ -198,12 +198,12 @@ public:
     // init() is a cold start for the first lambda
     void init(double lambda_, double rho_)
     {
-        main_x.setZero();
-        aux_z.setZero();
-        dual_y.setZero();
+        main_beta.setZero();
+        aux_gamma.setZero();
+        dual_nu.setZero();
         
-        adj_z.setZero();
-        adj_y.setZero();
+        adj_gamma.setZero();
+        adj_nu.setZero();
         
         lambda = lambda_;
         rho = rho_;
@@ -259,7 +259,7 @@ public:
         rho_changed_action();
     }
     // when computing for the next lambda, we can use the
-    // current main_x, aux_z, dual_y and rho as initial values
+    // current main_beta, aux_gamma, dual_nu and rho as initial values
     void init_warm(double lambda_)
     {
         lambda = lambda_;

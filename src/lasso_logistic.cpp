@@ -140,7 +140,7 @@ RcppExport SEXP admm_lasso_logistic(SEXP x_, SEXP y_, SEXP lambda_,
                 solver_tall->init_warm(ilambda);
             
             niter[i] = solver_tall->solve(maxit);
-            SpVec res = solver_tall->get_z();
+            SpVec res = solver_tall->get_gamma();
             double beta0 = 0.0;
             datstd.recover(beta0, res);
             write_beta_matrix(beta, i, beta0, res);
@@ -152,7 +152,7 @@ RcppExport SEXP admm_lasso_logistic(SEXP x_, SEXP y_, SEXP lambda_,
                 solver_wide->init_warm(ilambda, i);
             
             niter[i] = solver_wide->solve(maxit);
-            SpVec res = solver_wide->get_x();
+            SpVec res = solver_wide->get_beta();
             double beta0 = 0.0;
             datstd.recover(beta0, res);
             write_beta_matrix(beta, i, beta0, res);

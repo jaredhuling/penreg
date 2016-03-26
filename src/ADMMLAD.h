@@ -49,20 +49,20 @@ private:
 
 
     // x -> Ax
-    void A_mult (VectorXd &res, VectorXd &x)  { res.swap(x); }
+    void A_mult (VectorXd &res, VectorXd &beta)  { res.swap(beta); }
     // y -> A'y
-    void At_mult(VectorXd &res, VectorXd &y)  { res.swap(y); }
+    void At_mult(VectorXd &res, VectorXd &nu)  { res.swap(nu); }
     // z -> Bz
-    void B_mult (VectorXd &res, SparseVector &z) { res = -z; }
+    void B_mult (VectorXd &res, SparseVector &gamma) { res = -gamma; }
     // ||c||_2
     double c_norm() { return ynorm; }
 
 
 
-    void next_x(VectorXd &res)
+    void next_beta(VectorXd &res)
     {
-        VectorXd vec = (*datY) - adj_y / rho;
-        vec += adj_z;
+        VectorXd vec = (*datY) - adj_nu / rho;
+        vec += adj_gamma;
 
         if(dim_dual <= 2000)
         {
@@ -76,7 +76,7 @@ private:
             res.noalias() = (*datX) * solver.solve(tmp);
         }
     }
-    static void soft_threshold(SparseVector &res, VectorXd &vec, const double &penalty)
+static void soft_threshold(SparseVector &res, VectorXd &vec, const double &penalty)
     {
         int v_size = vec.size();
         res.setZero();
@@ -93,16 +93,16 @@ private:
     }
     void next_z(SparseVector &res)
     {
-        VectorXd vec = main_x - (*datY) + adj_y / rho;
+        VectorXd vec = main_beta - (*datY) + adj_nu / rho;
         soft_threshold(res, vec, 1.0 / rho);
     }
     void next_residual(VectorXd &res)
     {
-        // res.noalias() = main_x - (*datY);
-        // res -= aux_z;
+        // res.noalias() = main_beta - (*datY);
+        // res -= aux_gamma;
 
-        std::transform(main_x.data(), main_x.data() + dim_dual, datY->data(), res.data(), std::minus<double>());
-        for(SparseVector::InnerIterator iter(aux_z); iter; ++iter)
+        std::transform(main_beta.data(), main_beta.data() + dim_dual, datY->data(), res.data(), std::minus<double>());
+        for(SparseVector::InnerIterator iter(aux_gamma); iter; ++iter)
             res[iter.index()] -= iter.value();
     }
     void rho_changed_action() {}
@@ -151,7 +151,7 @@ private:
     // Faster computation of epsilons and residuals
     double compute_eps_primal()
     {
-        double r = std::max(main_x.norm(), aux_z.norm());
+        double r = std::max(main_beta.norm(), aux_gamma.norm());
         r = std::max(r, ynorm);
         return r * eps_rel + std::sqrt(double(dim_dual)) * eps_abs;
     }
@@ -161,11 +161,11 @@ private:
     }
     double compute_resid_dual()
     {
-        return rho * std::sqrt(diff_squared_norm(aux_z, old_z));
+        return rho * std::sqrt(diff_squared_norm(aux_gamma, old_gamma));
     }
     double compute_resid_combined()
     {
-        return rho * resid_primal * resid_primal + rho * diff_squared_norm(aux_z, adj_z);
+        return rho * resid_primal * resid_primal + rho * diff_squared_norm(aux_gamma, adj_gamma);
     }
 
 public:
@@ -202,12 +202,12 @@ public:
             delete [] T;
         }
 
-        main_x.setZero();
-        aux_z.setZero();
+        main_beta.setZero();
+        aux_gamma.setZero();
         dual_y.setZero();
 
-        adj_z.setZero();
-        adj_y.setZero();
+        adj_gamma.setZero();
+        adj_nu.setZero();
 
         rho = rho_;
 
@@ -217,10 +217,10 @@ public:
         resid_dual = 9999;
     }
 
-    VectorXd get_x()
+    VectorXd get_beta()
     {
-        VectorXd vec = (*datY) - adj_y / rho;
-        vec += adj_z;
+        VectorXd vec = (*datY) - adj_nu / rho;
+        vec += adj_gamma;
         return solver.solve((*datX).transpose() * vec);
     }
 };

@@ -38,9 +38,9 @@ private:
                 res.insertBack(i) = (ptr[i] + thresh) / denom;
         }
     }
-    void next_z(SparseVector &res)
+    void next_gamma(SparseVector &res)
     {
-        Vector vec = main_x + adj_y / rho;
+        Vector vec = main_beta + adj_nu / rho;
         enet(res, vec, lambda / rho);
     }
 
@@ -88,8 +88,8 @@ private:
         const Scalar penalty = lambda / (rho * gamma);
         const Scalar thresh = alpha * penalty;
         const Scalar denom = 1.0 + penalty * (1.0 - alpha);
-        tmp.noalias() = (cache_Ax + aux_z + dual_y / Scalar(rho)) / gamma;
-        res = main_x;
+        tmp.noalias() = (cache_Ax + aux_gamma + dual_y / Scalar(rho)) / gamma;
+        res = main_beta;
 
         Scalar *val_ptr = res.valuePtr();
         const int *ind_ptr = res.innerIndexPtr();
@@ -118,13 +118,13 @@ private:
         res.prune(0.0);
     }
 
-    void next_x(SparseVector &res)
+    void next_beta(SparseVector &res)
     {
         // iter_counter = 0, 3, 15, 63, .... (4^k - 1)
         if(is_regular_update(iter_counter) && lambda < lambda0)
         {
             const Scalar gamma = sprad;
-            tmp.noalias() = cache_Ax + aux_z + dual_y / Scalar(rho);
+            tmp.noalias() = cache_Ax + aux_gamma + dual_y / Scalar(rho);
             Vector vec(dim_main);
 #ifdef __AVX__
             vtrX.trans_mult_vec(tmp, vec.data());
@@ -132,7 +132,7 @@ private:
 #else
             vec.noalias() = -datX.transpose() * tmp / gamma;
 #endif
-            vec += main_x;
+            vec += main_beta;
             enet(res, vec, lambda / (rho * gamma));
         } else {
             active_set_update(res);

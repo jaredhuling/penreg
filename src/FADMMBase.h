@@ -10,24 +10,24 @@
 //
 // x(n, 1), z(m, 1), A(p, n), B(p, m), c(p, 1)
 //
-template<typename VecTypeX, typename VecTypeZ, typename VecTypeY>
+template<typename VecTypeBeta, typename VecTypeGamma, typename VecTypeNu>
 class FADMMBase
 {
 protected:
-    typedef typename VecTypeY::RealScalar Yscalar;
+    typedef typename VecTypeNu::RealScalar Yscalar;
 
     const int dim_main;   // dimension of x
     const int dim_aux;    // dimension of z
     const int dim_dual;   // dimension of Ax + Bz - c
 
-    VecTypeX main_x;      // parameters to be optimized
-    VecTypeZ aux_z;       // auxiliary parameters
-    VecTypeY dual_y;      // Lagrangian multiplier
+    VecTypeBeta main_beta;      // parameters to be optimized
+    VecTypeGamma aux_gamma;       // auxiliary parameters
+    VecTypeNu dual_nu;      // Lagrangian multiplier
 
-    VecTypeZ adj_z;       // adjusted z vector, used for acceleration
-    VecTypeY adj_y;       // adjusted y vector, used for acceleration
-    VecTypeZ old_z;       // z vector in the previous iteration, used for acceleration
-    VecTypeY old_y;       // y vector in the previous iteration, used for acceleration
+    VecTypeGamma adj_gamma;       // adjusted z vector, used for acceleration
+    VecTypeNu adj_nu;       // adjusted y vector, used for acceleration
+    VecTypeGamma old_gamma;       // z vector in the previous iteration, used for acceleration
+    VecTypeNu old_nu;       // y vector in the previous iteration, used for acceleration
     double adj_a;         // coefficient used for acceleration
     double adj_c;         // coefficient used for acceleration
 
@@ -41,17 +41,17 @@ protected:
     double resid_primal;  // primal residual
     double resid_dual;    // dual residual
 
-    virtual void A_mult (VecTypeY &res, VecTypeX &x) = 0;   // operation res -> Ax, x can be overwritten
-    virtual void At_mult(VecTypeY &res, VecTypeY &y) = 0;   // operation res -> A'y, y can be overwritten
-    virtual void B_mult (VecTypeY &res, VecTypeZ &z) = 0;   // operation res -> Bz, z can be overwritten
+    virtual void A_mult (VecTypeNu &res, VecTypeBeta &x) = 0;   // operation res -> Ax, x can be overwritten
+    virtual void At_mult(VecTypeNu &res, VecTypeNu &y) = 0;   // operation res -> A'y, y can be overwritten
+    virtual void B_mult (VecTypeNu &res, VecTypeGamma &z) = 0;   // operation res -> Bz, z can be overwritten
     virtual double c_norm() = 0;                            // L2 norm of c
 
     // res = Ax + Bz - c
-    virtual void next_residual(VecTypeY &res) = 0;
+    virtual void next_residual(VecTypeNu &res) = 0;
     // res = x in next iteration
-    virtual void next_x(VecTypeX &res) = 0;
+    virtual void next_beta(VecTypeBeta &res) = 0;
     // res = z in next iteration
-    virtual void next_z(VecTypeZ &res) = 0;
+    virtual void next_gamma(VecTypeGamma &res) = 0;
     // action when rho is changed, e.g. re-factorize matrices
     virtual void rho_changed_action() {}
 
@@ -59,12 +59,12 @@ protected:
     // eps_primal = sqrt(p) * eps_abs + eps_rel * max(||Ax||, ||Bz||, ||c||)
     virtual double compute_eps_primal()
     {
-        VecTypeY xres, zres;
-        VecTypeX xcopy = main_x;
-        VecTypeZ zcopy = aux_z;
-        A_mult(xres, xcopy);
-        B_mult(zres, zcopy);
-        double r = std::max(xres.norm(), zres.norm());
+        VecTypeNu betares, gammares;
+        VecTypeBeta betacopy = main_beta;
+        VecTypeGamma gammacopy = aux_gamma;
+        A_mult(betares, betacopy);
+        B_mult(gammares, gammacopy);
+        double r = std::max(betares.norm(), gammares.norm());
         r = std::max(r, c_norm());
         return r * eps_rel + std::sqrt(double(dim_dual)) * eps_abs;
     }
@@ -72,21 +72,21 @@ protected:
     // eps_dual = sqrt(n) * eps_abs + eps_rel * ||A'y||
     virtual double compute_eps_dual()
     {
-        VecTypeY yres, ycopy = dual_y;
+        VecTypeNu nures, nucopy = dual_nu;
 
-        At_mult(yres, ycopy);
+        At_mult(nures, nucopy);
 
-        return yres.norm() * eps_rel + std::sqrt(double(dim_main)) * eps_abs;
+        return nures.norm() * eps_rel + std::sqrt(double(dim_main)) * eps_abs;
     }
     // calculating dual residual
     // resid_dual = rho * A'B(auxz - oldz)
     virtual double compute_resid_dual()
     {
-        VecTypeZ zdiff = aux_z - old_z;
-        VecTypeY tmp;
-        B_mult(tmp, zdiff);
+        VecTypeGamma gammadiff = aux_gamma - old_gamma;
+        VecTypeNu tmp;
+        B_mult(tmp, gammadiff);
 
-        VecTypeY dual;
+        VecTypeNu dual;
         At_mult(dual, tmp);
 
         return rho * dual.norm();
@@ -95,8 +95,8 @@ protected:
     // resid_combined = rho * ||resid_primal||^2 + rho * ||auxz - adjz||^2
     virtual double compute_resid_combined()
     {
-        VecTypeZ tmp = aux_z - adj_z;
-        VecTypeY tmp2;
+        VecTypeGamma tmp = aux_gamma - adj_gamma;
+        VecTypeNu tmp2;
         B_mult(tmp2, tmp);
 
         return rho * resid_primal * resid_primal + rho * tmp2.squaredNorm();
@@ -169,43 +169,43 @@ public:
     FADMMBase(int n_, int m_, int p_,
               double eps_abs_ = 1e-6, double eps_rel_ = 1e-6) :
         dim_main(n_), dim_aux(m_), dim_dual(p_),
-        main_x(n_), aux_z(m_), dual_y(p_),  // allocate space but do not set values
-        adj_z(m_), adj_y(p_),
-        old_z(m_), old_y(p_),
+        main_beta(n_), aux_gamma(m_), dual_nu(p_),  // allocate space but do not set values
+        adj_gamma(m_), adj_nu(p_),
+        old_gamma(m_), old_nu(p_),
         adj_a(1.0), adj_c(9999),
         eps_abs(eps_abs_), eps_rel(eps_rel_)
     {}
 
     virtual ~FADMMBase() {}
 
-    void update_x()
+    void update_beta()
     {
         eps_primal = compute_eps_primal();
         eps_dual = compute_eps_dual();
 
-        VecTypeX newx(dim_main);
-        next_x(newx);
+        VecTypeBeta newbeta(dim_main);
+        next_beta(newbeta);
 
-        main_x.swap(newx);
+        main_beta.swap(newbeta);
     }
-    void update_z()
+    void update_gamma()
     {
-        VecTypeZ newz(dim_aux);
-        next_z(newz);
-        aux_z.swap(newz);
+        VecTypeGamma newgamma(dim_aux);
+        next_gamma(newgamma);
+        aux_gamma.swap(newgamma);
 
         resid_dual = compute_resid_dual();
     }
-    void update_y()
+    void update_nu()
     {
-        VecTypeY newr(dim_dual);
+        VecTypeNu newr(dim_dual);
         next_residual(newr);
 
         resid_primal = newr.norm();
 
-        // dual_y.noalias() = adj_y + rho * newr;
-        std::copy(adj_y.data(), adj_y.data() + dim_dual, dual_y.data());
-        Linalg::vec_add(dual_y.data(), Yscalar(rho), newr.data(), dim_dual);
+        // dual_nu.noalias() = adj_nu + rho * newr;
+        std::copy(adj_nu.data(), adj_nu.data() + dim_dual, dual_nu.data());
+        Linalg::vec_add(dual_nu.data(), Yscalar(rho), newr.data(), dim_dual);
     }
 
     bool converged()
@@ -222,13 +222,13 @@ public:
 
         for(i = 0; i < maxit; i++)
         {
-            old_z = aux_z;
-            // old_y = dual_y;
-            std::copy(dual_y.data(), dual_y.data() + dim_dual, old_y.data());
+            old_gamma = aux_gamma;
+            // old_nu = dual_nu;
+            std::copy(dual_nu.data(), dual_nu.data() + dim_dual, old_nu.data());
 
-            update_x();
-            update_z();
-            update_y();
+            update_beta();
+            update_gamma();
+            update_nu();
 
             // print_row(i);
 
@@ -243,13 +243,13 @@ public:
                 double old_a = adj_a;
                 adj_a = 0.5 + 0.5 * std::sqrt(1 + 4.0 * old_a * old_a);
                 double ratio = (old_a - 1.0) / adj_a;
-                adj_z = (1 + ratio) * aux_z - ratio * old_z;
-                adj_y.noalias() = (1 + ratio) * dual_y - ratio * old_y;
+                adj_gamma = (1 + ratio) * aux_gamma - ratio * old_gamma;
+                adj_nu.noalias() = (1 + ratio) * dual_nu - ratio * old_nu;
             } else {
                 adj_a = 1.0;
-                adj_z = old_z;
-                // adj_y = old_y;
-                std::copy(old_y.data(), old_y.data() + dim_dual, adj_y.data());
+                adj_gamma = old_gamma;
+                // adj_nu = old_nu;
+                std::copy(old_nu.data(), old_nu.data() + dim_dual, adj_nu.data());
                 adj_c = old_c / 0.999;
             }
             // only update rho after a few iterations and after every 40 iterations.
@@ -263,9 +263,9 @@ public:
         return i + 1;
     }
 
-    virtual VecTypeX get_x() { return main_x; }
-    virtual VecTypeZ get_z() { return aux_z; }
-    virtual VecTypeY get_y() { return dual_y; }
+    virtual VecTypeBeta get_beta() { return main_beta; }
+    virtual VecTypeGamma get_gamma() { return aux_gamma; }
+    virtual VecTypeNu get_nu() { return dual_nu; }
 };
 
 

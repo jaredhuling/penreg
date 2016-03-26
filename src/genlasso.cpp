@@ -149,8 +149,8 @@ RcppExport SEXP admm_genlasso(SEXP x_,
                 solver_tall->init_warm(ilambda);
             
             niter[i] = solver_tall->solve(maxit);
-            SpVec res = solver_tall->get_z();
-            VectorXd restrue = solver_tall->get_x();
+            SpVec res = solver_tall->get_gamma();
+            VectorXd restrue = solver_tall->get_beta();
             double beta0 = 0.0;
             double beta0a = 0.0;
             datstd.recover(beta0, restrue);

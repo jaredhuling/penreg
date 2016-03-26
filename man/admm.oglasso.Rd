@@ -67,11 +67,11 @@ Overlapping Group Lasso (oglasso)
 n.obs <- 1e4
 n.vars <- 15
 
-true.beta <- rnorm(n.vars)
+true.beta <- c(rep(0,2), 1, -1, rep(0, 8), 0.5, -0.5, 1)
 
 x <- matrix(rnorm(n.obs * n.vars), n.obs, n.vars)
 y <- rnorm(n.obs, sd = 3) + x \%*\% true.beta
 
-fit <- admm.oglasso(x = x, y = y, group=list(c(1,2), c(2,3), c(3,4,5), 4:10, 6:12, 7:15))
+fit <- admm.oglasso(x = x, y = y, group=list(c(1,2), c(2,3), c(3,4,5), 5:10, 6:12, 7:15))
 }
 

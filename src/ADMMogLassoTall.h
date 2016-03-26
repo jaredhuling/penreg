@@ -279,14 +279,14 @@ public:
             Vector evals = eigs.eigenvalues();
             savedEigs = evals;
             
-            float lam_fact = datX.rows() * lambda;
+            float lam_fact = lambda;
             //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
-            if (lam_fact < evals[1])
+            if (lam_fact < savedEigs[1])
             {
-                rho = std::sqrt(evals[1] * std::pow(lam_fact, 1.35));
-            } else if (lam_fact > evals[0])
+                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 4, 1.35));
+            } else if (lam_fact * 0.25 > savedEigs[0])
             {
-                rho = std::sqrt(evals[0] * std::pow(lam_fact, 1.35));
+                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 0.25, 1.35));
             } else 
             {
                 rho = std::pow(lam_fact, 1.05);
@@ -335,7 +335,6 @@ public:
             }
             
         }
-        
         MatrixXd matToSolve(XX);
         matToSolve.diagonal() += rho * CC;
         

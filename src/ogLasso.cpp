@@ -176,9 +176,8 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
             niter[i] = solver_tall->solve(maxit);
             VectorXd res = solver_tall->get_z();
             double beta0 = 0.0;
-            double beta0a = 0.0;
             
-            datstd.recover(beta0a, res);
+            datstd.recover(beta0, res);
             
             beta(0,i) = beta0;
             beta.block(1, i, p, 1) = res;

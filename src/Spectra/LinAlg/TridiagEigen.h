@@ -90,7 +90,7 @@ public:
             while(start > 0 && subd[start - 1] != 0)
                 start--;
 
-            Eigen::internal::tridiagonal_qr_step(maind, subd, start, end, evecs.data(), n);
+            Eigen::internal::tridiagonal_qr_step<Eigen::ColMajor>(maind, subd, start, end, evecs.data(), n);
         }
 
         if(info > 0)

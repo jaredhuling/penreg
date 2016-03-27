@@ -37,9 +37,9 @@
 #' @param dynamic.rho TRUE/FALSE indicating whether or not the rho value should be updated throughout the course of the ADMM iterations
 #' @param maxit integer. Maximum number of ADMM iterations. Default is 500.
 #' @param abs.tol absolute convergence tolerance for ADMM iterations for the relative dual and primal residuals. 
-#' Default is 10^{-4}, which is typically adequate.
+#' Default is 10^{-5}, which is typically adequate.
 #' @param rel.tol relative convergence tolerance for ADMM iterations for the relative dual and primal residuals. 
-#' Default is 10^{-4}, which is typically adequate.
+#' Default is 10^{-5}, which is typically adequate.
 #' @param irls.maxit integer. Maximum number of IRLS iterations. Only used if family != "gaussian". Default is 100.
 #' @param irls.tol convergence tolerance for IRLS iterations. Only used if family != "gaussian". Default is 10^{-5}.
 #' @return An object with S3 class "oglasso.fit" 

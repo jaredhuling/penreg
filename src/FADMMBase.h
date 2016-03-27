@@ -266,6 +266,12 @@ public:
     virtual VecTypeBeta get_beta() { return main_beta; }
     virtual VecTypeGamma get_gamma() { return aux_gamma; }
     virtual VecTypeNu get_nu() { return dual_nu; }
+    
+    virtual double get_lambda_zero() const { return 0; }
+    
+    virtual void init(double lambda_, double rho_) {}
+    virtual void init_warm(double lambda_) {}
+    
 };
 
 

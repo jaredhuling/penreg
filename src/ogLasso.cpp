@@ -3,6 +3,7 @@
 #define EIGEN_DONT_PARALLELIZE
 
 #include "ADMMogLassoTall.h"
+#include "ADMMogLassoLogisticTall.h"
 //#include "ADMMogLassoWide.h"
 #include "DataStd.h"
 
@@ -124,20 +125,45 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     DataStd<double> datstd(n, p, standardize, intercept);
     datstd.standardize(datX, datY);
     
-    ADMMogLassoTall *solver_tall;
+    FADMMBase<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> *solver_tall = NULL; // obj doesn't point to anything yet
+    //ADMMogLassoTall *solver_tall;
     //ADMMogLassoWide *solver_wide;
     
     
     if(n > 2 * p)
     {
-        solver_tall = new ADMMogLassoTall(datX, datY, C, n, p, M, ngroups, 
-                                          family, group_weights, group_idx, 
-                                          dynamic_rho, irls_tol, irls_maxit, 
-                                          eps_abs, eps_rel);
+        
+        if (family(0) == "gaussian")
+        {
+            solver_tall = new ADMMogLassoTall(datX, datY, C, n, p, M, ngroups, 
+                                              family, group_weights, group_idx, 
+                                              dynamic_rho, irls_tol, irls_maxit, 
+                                              eps_abs, eps_rel);
+        } else if (family(0) == "binomial")
+        {
+            solver_tall = new ADMMogLassoLogisticTall(datX, datY, C, n, p, M, ngroups, 
+                                                      family, group_weights, group_idx, 
+                                                      dynamic_rho, irls_tol, irls_maxit, 
+                                                      eps_abs, eps_rel);
+        }
     }
     else
     {
-        //solver_wide = new ADMMogLassoWide(datX, datY, eps_abs, eps_rel);
+        /*
+        if (family(0) == "gaussian")
+        {
+            solver_wide = new ADMMogLassoTallWide(datX, datY, C, n, p, M, ngroups, 
+                                              family, group_weights, group_idx, 
+                                              dynamic_rho, irls_tol, irls_maxit, 
+                                              eps_abs, eps_rel);
+        } else if (family(0) == "binomial")
+        {
+            solver_wide = new ADMMogLassoLogisticWide(datX, datY, C, n, p, M, ngroups, 
+                                                      family, group_weights, group_idx, 
+                                                      dynamic_rho, irls_tol, irls_maxit, 
+                                                      eps_abs, eps_rel);
+        }
+         */
     }
     
     if(nlambda < 1)
@@ -159,7 +185,6 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     }
     
     MatrixXd beta(p + 1, nlambda);
-    
     IntegerVector niter(nlambda);
     double ilambda = 0.0;
     
@@ -198,7 +223,8 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
         }
     }
     
-    if(n > p)
+    // need to deallocate dynamic object
+    if(n > 2 * p)
     {
         delete solver_tall;
     }

@@ -81,7 +81,6 @@ protected:
         
         res = main_beta;
         //LDLT solver_logreg;
-        //solver.compute((0.25 * XX).selfadjointView<Eigen::Lower>());
         int maxit_newton = 100;
         double tol_newton = 1e-5;
         
@@ -105,13 +104,11 @@ protected:
             
             VectorXd dx = HH.ldlt().solve(grad);
             res.noalias() -= dx;
-            //std::cout << "cross:\n" << grad.adjoint() * dx << std::endl;
             if (std::abs(grad.adjoint() * dx) < tol_newton)
             {
                 //std::cout << "iters:\n" << i+1 << std::endl;
                 break;
             }
-            //std::cout << "beta:\n" << res.head(5).adjoint() << std::endl;
         }
         
     }
@@ -218,10 +215,10 @@ public:
               lambda0(XY.cwiseAbs().maxCoeff())
     {}
     
-    double get_lambda_zero() const { return lambda0; }
+    virtual double get_lambda_zero() const { return lambda0; }
     
     // init() is a cold start for the first lambda
-    void init(double lambda_, double rho_)
+    virtual void init(double lambda_, double rho_)
     {
         main_beta.setZero();
         aux_gamma.setZero();
@@ -269,7 +266,7 @@ public:
     }
     // when computing for the next lambda, we can use the
     // current main_beta, aux_gamma, dual_nu and rho as initial values
-    void init_warm(double lambda_)
+    virtual void init_warm(double lambda_)
     {
         lambda = lambda_;
         

@@ -1,5 +1,5 @@
-#ifndef ADMMOGLASSOTALL_H
-#define ADMMOGLASSOTALL_H
+#ifndef ADMMOGLASSOLOGISTICTALL_H
+#define ADMMOGLASSOLOGISTICTALL_H
 
 #include "FADMMBase.h"
 #include "Linalg/BlasWrapper.h"
@@ -22,7 +22,7 @@ using Rcpp::CharacterVector;
 // b => y
 // f(x) => 1/2 * ||Ax - b||^2
 // g(z) => lambda * ||z||_1
-class ADMMogLassoTall: public FADMMBase<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
+class ADMMogLassoLogisticTall: public FADMMBase<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
 {
 protected:
     typedef float Scalar;
@@ -52,6 +52,7 @@ protected:
     
     Vector XY;                    // X'Y
     MatrixXd XX;                  // X'X
+    MatrixXd HH;                  // X'WX
     VectorXd CC;                  // C'C diagonal
     VectorXd Cbeta;               // C * beta
     VectorXd savedEigs;           // saved eigenvalues
@@ -126,13 +127,50 @@ protected:
         }
     }
     
-    void next_beta(Vector &res)
+    void next_beta2(Vector &res)
     {
         Vector rhs = XY - CCol.adjoint() * adj_nu;
         rhs += rho * (CCol.adjoint() * adj_gamma); 
         
         res.noalias() = solver.solve(rhs);
     }
+    
+    void next_beta(Vector &res)
+    {
+        
+        res = main_beta;
+        //LDLT solver_logreg;
+        
+        for (int i = 0; i < newton_maxit; ++i)
+        {
+            // calculate gradient
+            VectorXd prob = 1 / (1 + (-1 * (datX * res).array()).exp().array());
+            
+            VectorXd grad = (-1 * XY.array()).array() + (datX.adjoint() * prob).array() + 
+                (CCol.adjoint() * adj_nu).array() + (rho * res.array()).array();
+            
+            grad -= rho * (CCol.adjoint() * adj_gamma);
+            
+            //for(SparseVector::InnerIterator iter(CCol.adjoint() * adj_gamma); iter; ++iter)
+            //    grad[iter.index()] -= rho * iter.value();
+            
+            //calculate Jacobian
+            VectorXd W = prob.array() * (1 - prob.array());
+            HH = XtWX(datX, W);
+            HH.diagonal() += rho * CC;
+            
+            VectorXd dx = HH.ldlt().solve(grad);
+            res.noalias() -= dx;
+            
+            if (std::abs(grad.adjoint() * dx) < newton_tol)
+            {
+                //std::cout << "iters:\n" << i+1 << std::endl;
+                break;
+            }
+        }
+        
+    }
+    
     virtual void next_gamma(Vector &res)
     {
         Cbeta = CCol * main_beta;
@@ -197,19 +235,19 @@ protected:
     
     
 public:
-    ADMMogLassoTall(ConstGenericMatrix &datX_, 
-                     ConstGenericVector &datY_,
-                     const SpMatR &C_,// const VectorXd &D_, 
-                     int nobs_, int nvars_, int M_,
-                     int ngroups_,
-                     Rcpp::CharacterVector family_,
-                     VectorXd group_weights_,
-                     Rcpp::IntegerVector group_idx_,
-                     bool dynamic_rho_,
-                     double newton_tol_ = 1e-5,
-                     int newton_maxit_ = 100,
-                     double eps_abs_ = 1e-6,
-                     double eps_rel_ = 1e-6) :
+    ADMMogLassoLogisticTall(ConstGenericMatrix &datX_, 
+                            ConstGenericVector &datY_,
+                            const SpMatR &C_,// const VectorXd &D_, 
+                            int nobs_, int nvars_, int M_,
+                            int ngroups_,
+                            Rcpp::CharacterVector family_,
+                            VectorXd group_weights_,
+                            Rcpp::IntegerVector group_idx_,
+                            bool dynamic_rho_,
+                            double newton_tol_ = 1e-5,
+                            int newton_maxit_ = 100,
+                            double eps_abs_ = 1e-6,
+                            double eps_rel_ = 1e-6) :
     FADMMBase<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
              (datX_.cols(), C_.rows(), C_.rows(),
               eps_abs_, eps_rel_),
@@ -382,4 +420,4 @@ public:
 
 
 
-#endif // ADMMOGLASSOTALL_H
+#endif // ADMMOGLASSOLOGISTICTALL_H

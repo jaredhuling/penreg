@@ -127,14 +127,6 @@ protected:
         }
     }
     
-    void next_beta2(Vector &res)
-    {
-        Vector rhs = XY - CCol.adjoint() * adj_nu;
-        rhs += rho * (CCol.adjoint() * adj_gamma); 
-        
-        res.noalias() = solver.solve(rhs);
-    }
-    
     void next_beta(Vector &res)
     {
         
@@ -147,9 +139,9 @@ protected:
             VectorXd prob = 1 / (1 + (-1 * (datX * res).array()).exp().array());
             
             VectorXd grad = (-1 * XY.array()).array() + (datX.adjoint() * prob).array() + 
-                (CCol.adjoint() * adj_nu).array() + (rho * res.array()).array();
+                ( CCol.adjoint() * (adj_nu.array() + rho * adj_gamma.array()).matrix() ).array() + 
+                ( rho * CC.array() * res.array() ).array();
             
-            grad -= rho * (CCol.adjoint() * adj_gamma);
             
             //for(SparseVector::InnerIterator iter(CCol.adjoint() * adj_gamma); iter; ++iter)
             //    grad[iter.index()] -= rho * iter.value();

@@ -74,6 +74,7 @@ protected:
                 res.insertBack(i) = ptr[i] + penalty;
         }
     }
+    
     void next_beta(Vector &res)
     {
         Vector rhs = XY - adj_nu;
@@ -85,11 +86,13 @@ protected:
         
         res.noalias() = solver.solve(rhs);
     }
+    
     virtual void next_gamma(SparseVector &res)
     {
         Vector vec = main_beta + adj_nu / rho;
         soft_threshold(res, vec, lambda / rho);
     }
+    
     void next_residual(Vector &res)
     {
         // res = main_beta;

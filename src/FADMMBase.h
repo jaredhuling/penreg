@@ -214,12 +214,10 @@ public:
                (resid_dual < eps_dual);
     }
 
-    int solve(int maxit)
+    virtual int solve(int maxit)
     {
         int i;
-
-        // print_header("ADMM iterations");
-
+        
         for(i = 0; i < maxit; i++)
         {
             old_gamma = aux_gamma;

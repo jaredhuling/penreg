@@ -48,10 +48,10 @@ The default is to use the square root of group size for the group selection meth
 \item{maxit}{integer. Maximum number of ADMM iterations. Default is 500.}
 
 \item{abs.tol}{absolute convergence tolerance for ADMM iterations for the relative dual and primal residuals. 
-Default is 10^{-4}, which is typically adequate.}
+Default is 10^{-5}, which is typically adequate.}
 
 \item{rel.tol}{relative convergence tolerance for ADMM iterations for the relative dual and primal residuals. 
-Default is 10^{-4}, which is typically adequate.}
+Default is 10^{-5}, which is typically adequate.}
 
 \item{irls.tol}{convergence tolerance for IRLS iterations. Only used if family != "gaussian". Default is 10^{-5}.}
 

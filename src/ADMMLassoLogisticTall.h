@@ -88,14 +88,8 @@ protected:
         for (int i = 0; i < maxit_newton; ++i)
         {
             // calculate gradient
-            //VectorXd xbycur_exp( (-1 * ((datY.asDiagonal() * datX) * res).array()).array().exp() );
-            //VectorXd xbycur         ( ((datY.asDiagonal() * datX) * res).matrix() );
             
             VectorXd prob = 1 / (1 + (-1 * (datX * res).array()).exp().array());
-            
-            //VectorXd grad( ((datY.asDiagonal() * datX).adjoint() * 
-            //    (-1 * xbycur_exp.array() / (1 + xbycur_exp.array() ).array()).matrix()).array() + 
-            //    adj_nu.array() + rho * res.array());
             
             VectorXd grad = (-1 * XY.array()).array() + (datX.adjoint() * prob).array() + 
                 adj_nu.array() + (rho * res.array()).array();
@@ -104,16 +98,11 @@ protected:
             for(SparseVector::InnerIterator iter(adj_gamma); iter; ++iter)
                 grad[iter.index()] -= rho * iter.value();
             
-            //VectorXd xbycur_exp((-1 * xbycur.array()).array().exp());
-            
             //calculate Jacobian
-            //VectorXd w((xbycur_exp.array() / (1 + xbycur_exp.array()).array().square().array()).matrix() );
             VectorXd W = prob.array() * (1 - prob.array());
-            //MatrixXd HH(XtWX(datY.asDiagonal() * datX, w));  //datY.asDiagonal() * datX
             HH = XtWX(datX, W);
             HH.diagonal().array() += rho;
             
-            //res -= (0.15 * HH.ldlt().solve(grad).array()).matrix();
             VectorXd dx = HH.ldlt().solve(grad);
             res.noalias() -= dx;
             //std::cout << "cross:\n" << grad.adjoint() * dx << std::endl;
@@ -125,14 +114,6 @@ protected:
             //std::cout << "beta:\n" << res.head(5).adjoint() << std::endl;
         }
         
-        //Vector rhs = XY - adj_nu;
-        // rhs += rho * adj_gamma;
-        
-        // manual optimization
-        //for(SparseVector::InnerIterator iter(adj_gamma); iter; ++iter)
-        //    rhs[iter.index()] += rho * iter.value();
-        
-        //res.noalias() = solver.solve(rhs);
     }
     virtual void next_gamma(SparseVector &res)
     {

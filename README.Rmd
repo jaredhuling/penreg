@@ -48,15 +48,15 @@ or by cloning and building
 
 * Incorporate weighting of observations for lasso and genlasso
 
-* Incorporate a penalty factor multiplier which is a vector multiplied by the tuning parameter value so that individual variables can have their penalty upweighted, downweighted, or not penalized at all. Could also be used for adaptive lasso, etc
+* Incorporate a penalty factor multiplier (for all the methods. currently complete for coord mcp and admm lasso) which is a vector multiplied by the tuning parameter value so that individual variables can have their penalty upweighted, downweighted, or not penalized at all. Could also be used for adaptive lasso, etc
+
+* complete different families for all methods
 
 * Make automatic rho choice better in terms of convergence
 
-* Add code to make rho possibly update every 40th iteration
+* After the above are complete, work on group lasso 
 
-* CHANGE C++ VARIABLE NAMING CONVENTIONS (so the code is more readable)
-
-* After the above are complete, work on group lasso then overlapping group lasso
+* make the block soft thresholding function more efficient
 
 ## Code Structure
 
@@ -90,19 +90,41 @@ library(glmnet)
 library(penreg)
 set.seed(123)
 n <- 100
-p <- 20
+p <- 10
 m <- 5
 b <- matrix(c(runif(m), rep(0, p - m)))
 x <- matrix(rnorm(n * p, mean = 1.2, sd = 2), n, p)
 y <- 5 + x %*% b + rnorm(n)
 
-fit         <- glmnet(x, y)
+fit         <- glmnet(x, y, thresh = 1e-10, standardize = FALSE)
 glmnet_coef <- coef(fit)[,floor(length(fit$lambda/2))]
-admm.res    <- admm.lasso(x, y, standardize = TRUE, intercept = TRUE)
+admm.res    <- admm.lasso(x, y, standardize = FALSE, intercept = TRUE, 
+                          lambda = fit$lambda, abs.tol = 1e-8, rel.tol = 1e-8)
 admm_coef   <- admm.res$beta[,floor(length(fit$lambda/2))]
 
 data.frame(glmnet = as.numeric(glmnet_coef),
-           admm = as.numeric(admm_coef))
+           admm   = as.numeric(admm_coef))
+```
+
+### Lasso (logistic regression)
+```{r lassologistic}
+library(glmnet)
+library(penreg)
+set.seed(123)
+n <- 100
+p <- 10
+m <- 5
+b <- matrix(c(runif(m, min = -0.1, max = 0.1), rep(0, p - m)))
+x <- matrix(rnorm(n * p, mean = 1.2, sd = 2), n, p)
+y <- rbinom(n, 1, prob = 1 / (1 + exp(-x %*% b)))
+
+fit         <- glmnet(x, y, family = "binomial", standardize = FALSE, thresh = 1e-12)
+glmnet_coef <- coef(fit)[,floor(length(fit$lambda/2))]
+admm.res    <- admm.lasso(x, y, intercept = TRUE, family = "binomial", lambda = fit$lambda, irls.tol = 1e-8)
+admm_coef   <- admm.res$beta[,floor(length(fit$lambda/2))]
+
+data.frame(glmnet = as.numeric(glmnet_coef),
+           admm   = as.numeric(admm_coef))
 ```
 
 ## Performance
@@ -120,7 +142,7 @@ p <- 500
 m <- 50
 b <- matrix(c(runif(m), rep(0, p - m)))
 x <- matrix(rnorm(n * p, sd = 3), n, p)
-y <- x %*% b + rnorm(n)
+y <- drop(x %*% b) + rnorm(n)
 
 lambdas = glmnet(x, y)$lambda
 
@@ -129,22 +151,54 @@ microbenchmark(
     "admm[lasso]"   = {res2 <- admm.lasso(x, y, lambda = lambdas, 
                                           intercept = TRUE, standardize = TRUE,
                                           abs.tol = 1e-8, rel.tol = 1e-8)},
+    "cd[lasso]"     = {res3 <- cd.lasso(x, y, lambda = lambdas, 
+                                        intercept = TRUE, standardize = TRUE,
+                                        tol = 1e-5)},
     times = 5
 )
 
 # difference of results
+max(abs(coef(res1) - res2$beta))
+max(abs(coef(res1) - res3$beta))
+max(abs(res2$beta - res3$beta))
+
+set.seed(123)
+n <- 10000
+p <- 100
+m <- 25
+b <- matrix(c(runif(m), rep(0, p - m)))
+x <- matrix(rnorm(n * p, sd = 3), n, p)
+
+## Logistic Regression
+y <- rbinom(n, 1, prob = 1 / (1 + exp(-x %*% b)))
+
+lambdas = glmnet(x, y, family = "binomial")$lambda
+
+microbenchmark(
+    "glmnet[lasso]" = {res1 <- glmnet(x, y, thresh = 1e-11, standardize = FALSE, 
+                                      lambda = lambdas, 
+                                      family = "binomial")}, # thresh must be very low for glmnet to be accurate
+    "admm[lasso]"   = {res2 <- admm.lasso(x, y, lambda = lambdas, 
+                                          family = "binomial",
+                                          intercept = TRUE, standardize = FALSE,
+                                          irls.tol = 1e-6,
+                                          abs.tol = 1e-6, rel.tol = 1e-6)},
+    times = 5
+)
+
+# difference of results (admm is actually quite a bit more precise than glmnet here)
 max(abs(coef(res1) - res2$beta))
 mean(abs(coef(res1) - res2$beta))
 
 
 # p > n
 set.seed(123)
-n <- 1000
-p <- 2000
+n <- 200
+p <- 400
 m <- 100
 b <- matrix(c(runif(m), rep(0, p - m)))
 x <- matrix(rnorm(n * p, sd = 2), n, p)
-y <- x %*% b + rnorm(n)
+y <- drop(x %*% b) + rnorm(n)
 
 lambdas = glmnet(x, y)$lambda
 
@@ -153,23 +207,27 @@ microbenchmark(
     "admm[lasso]"   = {res2 <- admm.lasso(x, y, lambda = lambdas, 
                                           intercept = TRUE, standardize = TRUE,
                                           abs.tol = 1e-9, rel.tol = 1e-9)},
+    "cd[lasso]"     = {res3 <- cd.lasso(x, y, lambda = lambdas, 
+                                        intercept = TRUE, standardize = TRUE,
+                                        tol = 1e-5)},
     times = 5
 )
 
 # difference of results
 max(abs(coef(res1) - res2$beta))
-mean(abs(coef(res1) - res2$beta))
+max(abs(coef(res1) - res3$beta))
+max(abs(res2$beta - res3$beta))
 
 
 # p >> n
 # ADMM is clearly not well-suited for this setting
 set.seed(123)
 n <- 100
-p <- 2000
+p <- 1000
 m <- 10
 b <- matrix(c(runif(m), rep(0, p - m)))
 x <- matrix(rnorm(n * p, sd = 2), n, p)
-y <- x %*% b + rnorm(n)
+y <- drop(x %*% b) + rnorm(n)
 
 lambdas = glmnet(x, y)$lambda
 

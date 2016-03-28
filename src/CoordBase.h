@@ -17,8 +17,7 @@ protected:
     VecTypeX beta;        // parameters to be optimized
     VecTypeX beta_prev;   // auxiliary parameters
     
-    
-    double tol;           // tolerance for primal residual
+    double tol;           // tolerance for convergence
     
     virtual void next_beta(VecTypeX &res) = 0;
     

@@ -11,7 +11,7 @@ admm.oglasso(x, y, group, family = c("gaussian", "binomial"),
   rel.tol = 1e-05, irls.tol = 1e-05, irls.maxit = 100L)
 }
 \arguments{
-\item{x}{input matrix or SparseMatrix of dimension nobs \times nvars. Each row is an observation, 
+\item{x}{input matrix or SparseMatrix of dimension nobs * nvars. Each row is an observation, 
 each column corresponds to a covariate}
 
 \item{y}{numeric response vector of length nobs}

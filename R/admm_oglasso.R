@@ -11,7 +11,7 @@
 
 #' Overlapping Group Lasso (oglasso)
 #'
-#' @param x input matrix or SparseMatrix of dimension nobs \times nvars. Each row is an observation, 
+#' @param x input matrix or SparseMatrix of dimension nobs * nvars. Each row is an observation, 
 #' each column corresponds to a covariate
 #' @param y numeric response vector of length nobs
 #' @param group A list of length equal to the number of groups containing vectors of integers 
@@ -216,7 +216,8 @@ oglasso.fit <- function(family, is.sparse, x, y, group,
                         standardize, intercept, opts) {
     
     if (is.sparse) {
-        fit <- .Call("oglasso_fit_sparse", 
+        stop("not implemented yet")
+        fit <- .Call("admm_oglasso_sparse", 
                      x_ = x,
                      y_ = y,
                      group_ = group,

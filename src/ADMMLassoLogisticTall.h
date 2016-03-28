@@ -250,7 +250,7 @@ public:
               datY(datY_.data(), datY_.size()),
               penalty_factor(penalty_factor_),
               XY(datX.transpose() * datY),
-              XX(datX_.rows(), datX_.cols()),
+              XX(datX_.cols(), datX_.cols()),
               lambda0(XY.cwiseAbs().maxCoeff())
     {}
     
@@ -281,9 +281,6 @@ public:
             rho_unspecified = false;
         }
         
-        
-        //XX.diagonal().array() += rho;
-        //solver.compute(XX.selfadjointView<Eigen::Lower>());
         
         eps_primal = 0.0;
         eps_dual = 0.0;
@@ -329,7 +326,6 @@ public:
             // calculate gradient
             prob = 1 / (1 + (-1 * (datX * main_beta).array()).exp().array());
             
-            grad = (-1 * XY.array()).array() + (datX.adjoint() * prob).array();
             
             // calculate Jacobian
             W = prob.array() * (1 - prob.array());
@@ -347,7 +343,8 @@ public:
             XX = XtWX(datX, W);
             
             // compute X'Wz
-            XY = XX * main_beta + datX.adjoint() * (datY.array() - prob.array()).matrix();
+            grad = datX.adjoint() * (datY.array() - prob.array()).matrix();
+            XY = XX * main_beta + grad;
             
             // compute rho after X'WX is computed
             compute_rho();

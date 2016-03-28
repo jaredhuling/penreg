@@ -113,15 +113,27 @@ admm.oglasso <- function(x, y,
     } else {
         stop("Supply either a list or matrix. No data frames allowed.")
     }
+    
+    # add unpenalized group if intercept wanted for 
+    # non-gaussian models
+    if (family != "gaussian")
+    {
+        group  <- rBind(0, group)
+    }
+    
     # Seek for variables which were not
     # included in any group and add them 
     # to a final group which will be 
     # unpenalized.
     rSg <- Matrix::rowSums(group) == 0
     addZeroGroup <- any(rSg)
-    if (addZeroGroup) {
+    if (addZeroGroup) 
+    {
         group <- cBind(group, (1 * rSg))
     }
+    
+
+    
     group.idx <- as.integer(c(0, cumsum(Matrix::colSums(group))))
     ngroups <- ncol(group)
     if (!is.null(group.weights)) {

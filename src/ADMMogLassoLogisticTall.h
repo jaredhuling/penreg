@@ -129,38 +129,10 @@ protected:
     
     void next_beta(Vector &res)
     {
+        Vector rhs = XY - CCol.adjoint() * adj_nu;
+        rhs += rho * (CCol.adjoint() * adj_gamma); 
         
-        res = main_beta;
-        //LDLT solver_logreg;
-        
-        for (int i = 0; i < newton_maxit; ++i)
-        {
-            // calculate gradient
-            VectorXd prob = 1 / (1 + (-1 * (datX * res).array()).exp().array());
-            
-            VectorXd grad = (-1 * XY.array()).array() + (datX.adjoint() * prob).array() + 
-                ( CCol.adjoint() * (adj_nu.array() + rho * adj_gamma.array()).matrix() ).array() + 
-                ( rho * CC.array() * res.array() ).array();
-            
-            
-            //for(SparseVector::InnerIterator iter(CCol.adjoint() * adj_gamma); iter; ++iter)
-            //    grad[iter.index()] -= rho * iter.value();
-            
-            //calculate Jacobian
-            VectorXd W = prob.array() * (1 - prob.array());
-            HH = XtWX(datX, W);
-            HH.diagonal() += rho * CC;
-            
-            VectorXd dx = HH.ldlt().solve(grad);
-            res.noalias() -= dx;
-            
-            if (std::abs(grad.adjoint() * dx) < newton_tol)
-            {
-                //std::cout << "iters:\n" << i+1 << std::endl;
-                break;
-            }
-        }
-        
+        res.noalias() = solver.solve(rhs);
     }
     
     virtual void next_gamma(Vector &res)
@@ -174,8 +146,45 @@ protected:
         res = Cbeta;
         res -= aux_gamma;
     }
-    void rho_changed_action() {}
+    
+    void rho_changed_action() 
+    {
+        MatrixXd matToSolve(XX);
+        matToSolve.diagonal() += rho * CC;
+        
+        // precompute LLT decomposition of (X'X + rho * D'D)
+        solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
+    }
     void update_rho() {}
+    
+    void compute_rho()
+    {
+        if (rho_unspecified)
+        {
+            MatOpSymLower<Double> op(XX);
+            //Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
+            Spectra::SymEigsSolver< Double, Spectra::BOTH_ENDS, MatOpSymLower<Double> > eigs(&op, 2, 5);
+            srand(0);
+            eigs.init();
+            eigs.compute(1000, 0.01);
+            Vector evals = eigs.eigenvalues();
+            savedEigs = evals;
+            
+            float lam_fact = lambda;
+            //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+            if (lam_fact < savedEigs[1])
+            {
+                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 4, 1.35));
+            } else if (lam_fact * 0.25 > savedEigs[0])
+            {
+                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 0.25, 1.35));
+            } else 
+            {
+                rho = std::pow(lam_fact, 1.05);
+            }
+            
+        }
+    }
     
     
     
@@ -257,7 +266,7 @@ public:
               family(family_),
               group_idx(group_idx_),
               XY(datX.transpose() * datY),
-              XX(XtX(datX)),
+              XX(datX_.cols(), datX_.cols()),
               CCol(Eigen::SparseMatrix<double>(M_, nvars_)),
               CC(nvars_),
               Cbeta(C_.rows()),
@@ -300,38 +309,10 @@ public:
         if(rho <= 0)
         {
             rho_unspecified = true;
-            MatOpSymLower<Double> op(XX);
-            //Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
-            Spectra::SymEigsSolver< Double, Spectra::BOTH_ENDS, MatOpSymLower<Double> > eigs(&op, 2, 5);
-            srand(0);
-            eigs.init();
-            eigs.compute(1000, 0.01);
-            Vector evals = eigs.eigenvalues();
-            savedEigs = evals;
-            
-            float lam_fact = lambda;
-            //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
-            if (lam_fact < savedEigs[1])
-            {
-                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 4, 1.35));
-            } else if (lam_fact * 0.25 > savedEigs[0])
-            {
-                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 0.25, 1.35));
-            } else 
-            {
-                rho = std::pow(lam_fact, 1.05);
-            }
         } else {
             rho_unspecified = false;
         }
         
-        //XX.diagonal().array() += rho;
-        
-        MatrixXd matToSolve(XX);
-        matToSolve.diagonal() += rho * CC;
-        
-        // precompute LLT decomposition of (X'X + rho * D'D)
-        solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
         
         eps_primal = 0.0;
         eps_dual = 0.0;
@@ -341,35 +322,12 @@ public:
         adj_a = 1.0;
         adj_c = 1e30;
         
-        rho_changed_action();
     }
     // when computing for the next lambda, we can use the
     // current main_beta, aux_gamma, dual_nu and rho as initial values
     void init_warm(double lambda_)
     {
         lambda = lambda_;
-        
-        if (rho_unspecified)
-        {
-            float lam_fact = lambda;
-            //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
-            if (lam_fact < savedEigs[1])
-            {
-                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 4, 1.35));
-            } else if (lam_fact * 0.25 > savedEigs[0])
-            {
-                rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 0.25, 1.35));
-            } else 
-            {
-                rho = std::pow(lam_fact, 1.05);
-            }
-            
-        }
-        MatrixXd matToSolve(XX);
-        matToSolve.diagonal() += rho * CC;
-        
-        // precompute LLT decomposition of (X'X + rho * C'C)
-        solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
         
         eps_primal = 0.0;
         eps_dual = 0.0;
@@ -378,7 +336,6 @@ public:
         
         // adj_a = 1.0;
         // adj_c = 9999;
-        rho_changed_action();
     }
     
     virtual VectorXd get_gamma() { 
@@ -406,6 +363,112 @@ public:
             beta_return(k) = aux_gamma(rowidx);
         }
         return beta_return; 
+    }
+    
+    virtual int solve(int maxit)
+    {
+        
+        VectorXd beta_prev;
+        
+        int i;
+        int j;
+        for (int i = 0; i < newton_maxit; ++i)
+        {
+            
+            
+            VectorXd W;
+            VectorXd prob;
+            VectorXd grad;
+            
+            beta_prev = main_beta;
+            
+            // calculate gradient
+            prob = 1 / (1 + (-1 * (datX * main_beta).array()).exp().array());
+            
+            
+            // calculate Jacobian
+            W = prob.array() * (1 - prob.array());
+            
+            // make sure no weights are too small
+            for (int kk = 0; kk < W.size(); ++kk)
+            {
+                if (W(i) < 1e-5) 
+                {
+                    W(i) = 1e-5;
+                }
+            }
+            
+            // compute X'WX
+            XX = XtWX(datX, W);
+            
+            // compute X'Wz
+            grad = datX.adjoint() * (datY.array() - prob.array()).matrix();
+            XY = XX * main_beta + grad;
+            
+            // compute rho after X'WX is computed
+            compute_rho();
+            
+            // reset LDLT solver with new XX
+            rho_changed_action();
+            
+            
+            if (i > 0) 
+            {
+                // reset values that need to be reset 
+                // for ADMM
+                // and keep lambda the same
+                init_warm(lambda);
+            }
+            
+            for(j = 0; j < maxit; ++j)
+            {
+                old_gamma = aux_gamma;
+                // old_nu = dual_nu;
+                std::copy(dual_nu.data(), dual_nu.data() + dim_dual, old_nu.data());
+                
+                update_beta();
+                update_gamma();
+                update_nu();
+                
+                // print_row(i);
+                
+                if(converged())
+                    break;
+                
+                double old_c = adj_c;
+                adj_c = compute_resid_combined();
+                
+                if(adj_c < 0.999 * old_c)
+                {
+                    double old_a = adj_a;
+                    adj_a = 0.5 + 0.5 * std::sqrt(1 + 4.0 * old_a * old_a);
+                    double ratio = (old_a - 1.0) / adj_a;
+                    adj_gamma = (1 + ratio) * aux_gamma - ratio * old_gamma;
+                    adj_nu.noalias() = (1 + ratio) * dual_nu - ratio * old_nu;
+                } else {
+                    adj_a = 1.0;
+                    adj_gamma = old_gamma;
+                    // adj_nu = old_nu;
+                    std::copy(old_nu.data(), old_nu.data() + dim_dual, adj_nu.data());
+                    adj_c = old_c / 0.999;
+                }
+                // only update rho after a few iterations and after every 40 iterations.
+                // too many updates makes it slow.
+                if(i > 5 && i % 2500 == 0)
+                    update_rho();
+            }
+            
+            VectorXd dx = beta_prev - main_beta;
+            if (std::abs(XY.adjoint() * dx) < newton_tol)
+            {
+                //std::cout << "iters:\n" << i+1 << std::endl;
+                break;
+            }
+            
+        }
+        // print_footer();
+        
+        return i + 1;
     }
     
 };

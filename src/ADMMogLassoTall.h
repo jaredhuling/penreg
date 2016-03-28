@@ -133,12 +133,14 @@ protected:
         
         res.noalias() = solver.solve(rhs);
     }
+    
     virtual void next_gamma(Vector &res)
     {
         Cbeta = CCol * main_beta;
         Vector vec = Cbeta + adj_nu / rho;
         block_soft_threshold(res, vec, lambda, 1/rho);
     }
+    
     void next_residual(Vector &res)
     {
         res = Cbeta;

@@ -101,8 +101,9 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     const double eps_rel     = as<double>(opts["eps_rel"]);
     const double rho         = as<double>(opts["rho"]);
     const double dynamic_rho = as<double>(opts["dynamic_rho"]);
-    const bool standardize   = as<bool>(standardize_);
-    const bool intercept     = as<bool>(intercept_);
+    bool standardize   = as<bool>(standardize_);
+    bool intercept     = as<bool>(intercept_);
+    bool intercept_bin = intercept;
     
     const SpMat group(as<MSpMat>(group_));
     CharacterVector family(as<CharacterVector>(family_));
@@ -110,6 +111,34 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     IntegerVector group_idx(group_idx_);
     
     const int ngroups(as<int>(ngroups_));
+    
+    
+    // don't standardize if not linear model. 
+    // fit intercept the dumb way if it is wanted
+    bool fullbetamat = false;
+    int add = 0;
+    if (family(0) != "gaussian")
+    {
+        standardize = false;
+        intercept = false;
+        
+        if (intercept_bin)
+        {
+            fullbetamat = true;
+            add = 1;
+            
+            VectorXd v(n);
+            v.fill(1);
+            MatrixXd datX_tmp(n, p+1);
+            
+            datX_tmp << v, datX;
+            datX.swap(datX_tmp);
+            
+            datX_tmp.resize(0,0);
+        }
+    }
+    
+    
     
     // total size of all groups
     const int M(group.sum());
@@ -122,7 +151,7 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     createC(C, group, M);
     
     
-    DataStd<double> datstd(n, p, standardize, intercept);
+    DataStd<double> datstd(n, p + add, standardize, intercept);
     datstd.standardize(datX, datY);
     
     FADMMBase<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> *solver_tall = NULL; // obj doesn't point to anything yet
@@ -202,10 +231,21 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
             VectorXd res = solver_tall->get_gamma();
             double beta0 = 0.0;
             
-            datstd.recover(beta0, res);
+            // if the design matrix includes the intercept
+            // then don't back into the intercept with
+            // datastd and include it to beta directly.
+            if (fullbetamat)
+            {
+                beta.block(0, i, p+1, 1) = res;
+                datstd.recover(beta0, res);
+            } else 
+            {
+                datstd.recover(beta0, res);
+                beta(0,i) = beta0;
+                beta.block(1, i, p, 1) = res;
+            }
             
-            beta(0,i) = beta0;
-            beta.block(1, i, p, 1) = res;
+
             
         } else {
             /*
@@ -217,7 +257,10 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
             niter[i] = solver_wide->solve(maxit);
             SpVec res = solver_wide->get_x();
             double beta0 = 0.0;
-            datstd.recover(beta0, res);
+            if (!fullbetamat)
+            {
+                datstd.recover(beta0, res);
+            }
             write_beta_matrix(beta, i, beta0, res);
             */
         }

@@ -80,7 +80,7 @@ static void soft_threshold(SparseVector &res, const Vector &vec, const double &p
     const double *ptr = vec.data();
     for(int i = 0; i < v_size; i++)
     {
-        double total_pen = pen_fact[i] * penalty;
+        double total_pen = pen_fact(i) * penalty;
         
         if(ptr[i] > total_pen)
             res.insertBack(i) = ptr[i] - total_pen;
@@ -112,7 +112,7 @@ static void soft_threshold(SparseVector &res, const Vector &vec, const double &p
             const double val = val_ptr[i] - tmp.dot(datX.col(ind_ptr[i]));
 #endif
 
-            double total_pen = pen_fact[i] * penalty;
+            double total_pen = pen_fact(i) * penalty;
 
             if(val > total_pen)
                 val_ptr[i] = val - total_pen;

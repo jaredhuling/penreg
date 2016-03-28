@@ -73,7 +73,7 @@ protected:
         const double *ptr = vec.data();
         for(int i = 0; i < v_size; i++)
         {
-            double total_pen = pen_fact[i] * penalty;
+            double total_pen = pen_fact(i) * penalty;
             
             if(ptr[i] > total_pen)
                 res.insertBack(i) = ptr[i] - total_pen;

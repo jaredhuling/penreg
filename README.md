@@ -185,14 +185,14 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq      mean    median        uq      max
-##  glmnet[lasso] 1022.6184 1027.2837 1198.5852 1155.5844 1374.6038 1412.836
-##    admm[lasso]  767.0904  814.4545  866.1616  817.3545  895.7443 1036.164
-##      cd[lasso] 2128.6531 2142.7474 2390.2293 2182.4856 2481.9032 3015.357
+##           expr       min        lq      mean    median        uq       max
+##  glmnet[lasso]  899.7733  908.0236  921.3106  908.0504  909.6120  981.0936
+##    admm[lasso]  675.5999  681.5730  699.6475  700.4277  705.3199  735.3170
+##      cd[lasso] 1644.9993 1651.2834 1710.7607 1689.4881 1723.4230 1844.6095
 ##  neval cld
-##      5  a 
-##      5  a 
-##      5   b
+##      5  b 
+##      5 a  
+##      5   c
 ```
 
 ```r
@@ -248,9 +248,9 @@ microbenchmark(
 
 ```
 ## Unit: seconds
-##           expr       min        lq      mean    median       uq      max
-##  glmnet[lasso] 10.871893 10.972751 11.155293 11.182841 11.36326 11.38572
-##    admm[lasso]  8.911481  9.594041  9.856075  9.669041 10.36360 10.74221
+##           expr      min       lq     mean   median       uq       max
+##  glmnet[lasso] 9.153600 9.218419 9.704175 9.243971 9.768545 11.136340
+##    admm[lasso] 7.802485 7.938068 8.165284 8.202543 8.433374  8.449947
 ##  neval cld
 ##      5   b
 ##      5  a
@@ -299,10 +299,10 @@ microbenchmark(
 
 ```
 ## Unit: milliseconds
-##           expr       min        lq      mean    median        uq      max
-##  glmnet[lasso]  862.9237  864.7782  920.0771  876.4073  878.6754 1117.601
-##    admm[lasso] 4813.2545 4853.4155 5162.5523 5034.6162 5061.9813 6049.494
-##      cd[lasso] 1748.0269 1748.8744 1830.9445 1771.3740 1801.5555 2084.891
+##           expr       min        lq      mean    median        uq       max
+##  glmnet[lasso]  785.5918  793.0325  805.3263  802.1128  810.0524  835.8421
+##    admm[lasso] 4497.1962 4570.2749 4613.4047 4582.3039 4637.2231 4780.0253
+##      cd[lasso] 1486.8709 1504.2903 1566.8702 1527.9714 1590.3347 1724.8839
 ##  neval cld
 ##      5 a  
 ##      5   c
@@ -345,25 +345,34 @@ b <- matrix(c(runif(m), rep(0, p - m)))
 x <- matrix(rnorm(n * p, sd = 2), n, p)
 y <- drop(x %*% b) + rnorm(n)
 
-lambdas = glmnet(x, y)$lambda
+lambdas = glmnet(x, y, standardize = FALSE)$lambda
 
+# the glmnet threshold criterion had to be made extremely
+# small for it not to have some coefficents which were poorly
+# converged
 microbenchmark(
-    "glmnet[lasso]" = {res1 <- glmnet(x, y, thresh = 1e-12)},
+    "glmnet[lasso]" = {res1 <- glmnet(x, y, thresh = 1e-16, lambda = lambdas,
+                                      standardize = FALSE)},
     "admm[lasso]"   = {res2 <- admm.lasso(x, y, lambda = lambdas, 
-                                          intercept = TRUE, standardize = TRUE,
-                                          abs.tol = 1e-9, rel.tol = 1e-9)},
+                                          intercept = TRUE, standardize = FALSE,
+                                          abs.tol = 1e-8, rel.tol = 1e-8)},
+    "cd[lasso]"     = {res3 <- cd.lasso(x, y, lambda = lambdas, 
+                                        intercept = TRUE, standardize = FALSE,
+                                        tol = 1e-5)},
     times = 5
 )
 ```
 
 ```
 ## Unit: milliseconds
-##           expr        min         lq       mean     median        uq
-##  glmnet[lasso]   76.10945   80.20753   83.54355   82.51591   88.4191
-##    admm[lasso] 4200.14108 4301.50653 4387.28765 4340.10322 4416.9244
-##         max neval cld
-##    90.46577     5  a 
-##  4677.76305     5   b
+##           expr       min        lq      mean    median        uq       max
+##  glmnet[lasso]  210.5572  220.2147  222.9123  221.6325  228.9390  233.2179
+##    admm[lasso] 2418.7377 2451.2284 2473.5513 2451.3488 2506.8122 2539.6293
+##      cd[lasso]  768.6828  778.6817  785.3402  783.1453  787.8998  808.2915
+##  neval cld
+##      5 a  
+##      5   c
+##      5  b
 ```
 
 ```r
@@ -372,7 +381,7 @@ max(abs(coef(res1) - res2$beta))
 ```
 
 ```
-## [1] 0.0001833642
+## [1] 1.524573e-05
 ```
 
 ```r
@@ -380,5 +389,37 @@ mean(abs(coef(res1) - res2$beta))
 ```
 
 ```
-## [1] 4.638761e-07
+## [1] 3.713966e-08
+```
+
+```r
+max(abs(coef(res1) - res3$beta))
+```
+
+```
+## [1] 3.587655e-06
+```
+
+```r
+mean(abs(coef(res1) - res3$beta))
+```
+
+```
+## [1] 6.717902e-09
+```
+
+```r
+max(abs(res2$beta - res3$beta))
+```
+
+```
+## [1] 1.279021e-05
+```
+
+```r
+mean(abs(res2$beta - res3$beta))
+```
+
+```
+## [1] 3.756596e-08
 ```

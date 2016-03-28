@@ -229,17 +229,30 @@ b <- matrix(c(runif(m), rep(0, p - m)))
 x <- matrix(rnorm(n * p, sd = 2), n, p)
 y <- drop(x %*% b) + rnorm(n)
 
-lambdas = glmnet(x, y)$lambda
+lambdas = glmnet(x, y, standardize = FALSE)$lambda
 
+# the glmnet threshold criterion had to be made extremely
+# small for it not to have some coefficents which were poorly
+# converged
 microbenchmark(
-    "glmnet[lasso]" = {res1 <- glmnet(x, y, thresh = 1e-12)},
+    "glmnet[lasso]" = {res1 <- glmnet(x, y, thresh = 1e-16, lambda = lambdas,
+                                      standardize = FALSE)},
     "admm[lasso]"   = {res2 <- admm.lasso(x, y, lambda = lambdas, 
-                                          intercept = TRUE, standardize = TRUE,
-                                          abs.tol = 1e-9, rel.tol = 1e-9)},
+                                          intercept = TRUE, standardize = FALSE,
+                                          abs.tol = 1e-8, rel.tol = 1e-8)},
+    "cd[lasso]"     = {res3 <- cd.lasso(x, y, lambda = lambdas, 
+                                        intercept = TRUE, standardize = FALSE,
+                                        tol = 1e-5)},
     times = 5
 )
 
 # difference of results
 max(abs(coef(res1) - res2$beta))
 mean(abs(coef(res1) - res2$beta))
+
+max(abs(coef(res1) - res3$beta))
+mean(abs(coef(res1) - res3$beta))
+
+max(abs(res2$beta - res3$beta))
+mean(abs(res2$beta - res3$beta))
 ```

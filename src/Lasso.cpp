@@ -1,6 +1,7 @@
 #define EIGEN_DONT_PARALLELIZE
 
 #include "ADMMLassoTall.h"
+#include "ADMMLassoLogisticTall.h"
 #include "ADMMLassoWide.h"
 #include "DataStd.h"
 
@@ -18,6 +19,7 @@ using Rcpp::as;
 using Rcpp::List;
 using Rcpp::Named;
 using Rcpp::IntegerVector;
+using Rcpp::CharacterVector;
 
 typedef Map<VectorXd> MapVecd;
 typedef Map<Eigen::MatrixXd> MapMatd;
@@ -34,9 +36,14 @@ inline void write_beta_matrix(SpMat &betas, int col, double beta0, SpVec &coef)
     }
 }
 
-RcppExport SEXP admm_lasso(SEXP x_, SEXP y_, SEXP lambda_,
-                           SEXP nlambda_, SEXP lmin_ratio_,
-                           SEXP standardize_, SEXP intercept_,
+RcppExport SEXP admm_lasso(SEXP x_, 
+                           SEXP y_, 
+                           SEXP family_,
+                           SEXP lambda_,
+                           SEXP nlambda_, 
+                           SEXP lmin_ratio_,
+                           SEXP standardize_, 
+                           SEXP intercept_,
                            SEXP opts_)
 {
 BEGIN_RCPP
@@ -54,7 +61,7 @@ BEGIN_RCPP
     MatrixXd datX(n, p);
     VectorXd datY(n);
     
-    // Copy data and convert type from double to float
+    // Copy data 
     std::copy(xx.begin(), xx.end(), datX.data());
     std::copy(yy.begin(), yy.end(), datY.data());
     
@@ -81,26 +88,46 @@ BEGIN_RCPP
 
     List opts(opts_);
     const int maxit        = as<int>(opts["maxit"]);
+    const int irls_maxit     = as<int>(opts["irls_maxit"]);
+    const double irls_tol    = as<double>(opts["irls_tol"]);
     const double eps_abs   = as<double>(opts["eps_abs"]);
     const double eps_rel   = as<double>(opts["eps_rel"]);
     const double rho       = as<double>(opts["rho"]);
     const bool standardize = as<bool>(standardize_);
     const bool intercept   = as<bool>(intercept_);
-
+    CharacterVector family(as<CharacterVector>(family_));
+    
     DataStd<double> datstd(n, p, standardize, intercept);
     datstd.standardize(datX, datY);
     
     // initialize pointers 
-    ADMMLassoTall *solver_tall;
-    ADMMLassoWide *solver_wide;
+    FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd> *solver_tall = NULL; // obj doesn't point to anything yet
+    ADMMBase<Eigen::SparseVector<double>, Eigen::VectorXd, Eigen::VectorXd> *solver_wide = NULL; // obj doesn't point to anything yet
+    //ADMMLassoTall *solver_tall;
+    //ADMMLassoWide *solver_wide;
+    
 
     // initialize classes
-    if(n > p)
+    if(n > 2 * p)
     {
-        solver_tall = new ADMMLassoTall(datX, datY, eps_abs, eps_rel);
+        if (family(0) == "gaussian")
+        {
+            solver_tall = new ADMMLassoTall(datX, datY, eps_abs, eps_rel);
+        } else if (family(0) == "binomial")
+        {
+            solver_tall = new ADMMLassoLogisticTall(datX, datY, irls_tol, irls_maxit, eps_abs, eps_rel);
+        }
     } else
     {
-        solver_wide = new ADMMLassoWide(datX, datY, eps_abs, eps_rel);
+        if (family(0) == "gaussian")
+        {
+            solver_wide = new ADMMLassoWide(datX, datY, eps_abs, eps_rel);
+        } else if (family(0) == "binomial")
+        {
+            //solver_wide = new ADMMLassoLogisticWide(datX, datY, irls_tol, irls_maxit, eps_abs, eps_rel);
+            solver_wide = new ADMMLassoWide(datX, datY, eps_abs, eps_rel);
+            std::cout << "Warning: binomial not implemented for wide case yet \n"  << std::endl;
+        }
     }
 
     
@@ -108,7 +135,7 @@ BEGIN_RCPP
         
         double lmax = 0.0;
         
-        if(n > p) 
+        if(n > 2 * p) 
         {
             lmax = solver_tall->get_lambda_zero() / n * datstd.get_scaleY();
         } else
@@ -131,7 +158,7 @@ BEGIN_RCPP
     for(int i = 0; i < nlambda; i++)
     {
         ilambda = lambda[i] * n / datstd.get_scaleY();
-        if(n > p)
+        if(n > 2 * p)
         {
             if(i == 0)
                 solver_tall->init(ilambda, rho);
@@ -160,7 +187,7 @@ BEGIN_RCPP
     }
     
 
-    if(n > p) 
+    if(n > 2 * p) 
     {
         delete solver_tall;
     }

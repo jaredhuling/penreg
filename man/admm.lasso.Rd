@@ -7,7 +7,8 @@
 admm.lasso(x, y, lambda = numeric(0), nlambda = 100L,
   lambda.min.ratio = NULL, family = c("gaussian", "binomial"),
   intercept = FALSE, standardize = FALSE, maxit = 5000L,
-  abs.tol = 1e-07, rel.tol = 1e-07, rho = NULL)
+  abs.tol = 1e-07, rel.tol = 1e-07, rho = NULL, irls.tol = 1e-05,
+  irls.maxit = 100L)
 }
 \arguments{
 \item{x}{The design matrix}
@@ -28,6 +29,8 @@ It is recommended to set this parameter to be \code{NULL}
 when the program calculates its own \eqn{\lambda}
 (by setting \code{lambda = NULL}).}
 
+\item{family}{"gaussian" for least squares problems, "binomial" for binary response}
+
 \item{intercept}{Whether to fit an intercept in the model. Default is \code{FALSE}.}
 
 \item{standardize}{Whether to standardize the design matrix before
@@ -42,6 +45,10 @@ are always returned on the original scale.}
 
 \item{rho}{ADMM step size parameter. If set to \code{NULL}, the program
 will compute a default one which has good convergence properties.}
+
+\item{irls.tol}{convergence tolerance for IRLS iterations. Only used if family != "gaussian". Default is 10^{-5}.}
+
+\item{irls.maxit}{integer. Maximum number of IRLS iterations. Only used if family != "gaussian". Default is 100.}
 
 \item{lambda_min_ratio}{Smallest value in the \eqn{\lambda} sequence
 as a fraction of \eqn{\lambda_0}. See
@@ -72,6 +79,10 @@ y = drop(x \%*\% b) + rnorm(n)
 ## fit lasso model with 100 tuning parameter values
 res <- admm.lasso(x, y)
 
+# logistic
+y <- rbinom(n, 1, prob = 1 / (1 + exp(-x \%*\% b)))
+
+bfit <- admm.lasso(x = x, y = y, family = "binomial")
 
 }
 \references{

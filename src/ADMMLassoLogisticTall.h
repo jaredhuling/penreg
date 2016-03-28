@@ -43,6 +43,8 @@ protected:
     MatrixXd HH;                  // X'WX
     LDLT solver;                  // matrix factorization
     VectorXd savedEigs;           // saved eigenvalues
+    double newton_tol;            // tolerance for newton iterations
+    int newton_maxit;             // max # iterations for newton-raphson
     bool rho_unspecified;         // was rho unspecified? if so, we must set it
     
     Scalar lambda;                // L1 penalty
@@ -229,12 +231,17 @@ protected:
     }
     
 public:
-    ADMMLassoLogisticTall(ConstGenericMatrix &datX_, ConstGenericVector &datY_,
+    ADMMLassoLogisticTall(ConstGenericMatrix &datX_, 
+                          ConstGenericVector &datY_,
+                          double newton_tol_ = 1e-5,
+                          int newton_maxit_ = 100,
                           double eps_abs_ = 1e-6,
                           double eps_rel_ = 1e-6) :
     FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
              (datX_.cols(), datX_.cols(), datX_.cols(),
               eps_abs_, eps_rel_),
+              newton_tol(newton_tol_),
+              newton_maxit(newton_maxit_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
               XY(datX.transpose() * datY),
@@ -269,7 +276,6 @@ public:
             rho_unspecified = false;
         }
         
-        //XX.diagonal().array() += rho;
         
         //XX.diagonal().array() += rho;
         //solver.compute(XX.selfadjointView<Eigen::Lower>());
@@ -300,13 +306,12 @@ public:
     
     virtual int solve(int maxit)
     {
-        int maxit_newton = 100;
-        double tol_newton = 1e-5;
+        
         VectorXd beta_prev;
         
         int i;
         int j;
-        for (int i = 0; i < maxit_newton; ++i)
+        for (int i = 0; i < newton_maxit; ++i)
         {
             
             
@@ -384,7 +389,7 @@ public:
             }
             
             VectorXd dx = beta_prev - main_beta;
-            if (std::abs(XY.adjoint() * dx) < tol_newton)
+            if (std::abs(XY.adjoint() * dx) < newton_tol)
             {
                 //std::cout << "iters:\n" << i+1 << std::endl;
                 break;

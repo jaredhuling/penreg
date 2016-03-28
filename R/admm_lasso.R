@@ -11,6 +11,7 @@
 #' 
 #' @param x The design matrix
 #' @param y The response vector
+#' @param family "gaussian" for least squares problems, "binomial" for binary response
 #' @param intercept Whether to fit an intercept in the model. Default is \code{FALSE}. 
 #' @param standardize Whether to standardize the design matrix before
 #'                    fitting the model. Default is \code{FALSE}. Fitted coefficients
@@ -38,6 +39,8 @@
 #' @param maxit Maximum number of admm iterations.
 #' @param abs.tol Absolute tolerance parameter.
 #' @param rel.tol Relative tolerance parameter.
+#' @param irls.maxit integer. Maximum number of IRLS iterations. Only used if family != "gaussian". Default is 100.
+#' @param irls.tol convergence tolerance for IRLS iterations. Only used if family != "gaussian". Default is 10^{-5}.
 #' @param rho ADMM step size parameter. If set to \code{NULL}, the program
 #'                   will compute a default one which has good convergence properties.
 #' 
@@ -53,6 +56,10 @@
 #' ## fit lasso model with 100 tuning parameter values
 #' res <- admm.lasso(x, y)
 #' 
+#' # logistic
+#' y <- rbinom(n, 1, prob = 1 / (1 + exp(-x %*% b)))
+#' 
+#' bfit <- admm.lasso(x = x, y = y, family = "binomial")
 #' 
 #' @export
 admm.lasso <- function(x, 
@@ -66,8 +73,9 @@ admm.lasso <- function(x,
                        maxit            = 5000L,
                        abs.tol          = 1e-7,
                        rel.tol          = 1e-7,
-                       rho              = NULL
-                       )
+                       rho              = NULL,
+                       irls.tol         = 1e-5, 
+                       irls.maxit       = 100L)
 {
     n <- nrow(x)
     p <- ncol(x)
@@ -125,32 +133,27 @@ admm.lasso <- function(x,
         stop("rho should be positive")
     }
     
-    maxit   <- as.integer(maxit)
-    abs.tol <- as.numeric(abs.tol)
-    rel.tol <- as.numeric(rel.tol)
-    rho     <- if(is.null(rho))  -1.0  else  as.numeric(rho)
+    maxit      <- as.integer(maxit)
+    irls.maxit <- as.integer(irls.maxit)
+    irls.tol   <- as.numeric(irls.tol)
+    abs.tol    <- as.numeric(abs.tol)
+    abs.tol    <- as.numeric(abs.tol)
+    rel.tol    <- as.numeric(rel.tol)
+    rho        <- if(is.null(rho))  -1.0  else  as.numeric(rho)
     
-    if (family == "gaussian")
-    {
-        res <- .Call("admm_lasso", x, y, lambda,
-                     nlambda, lambda.min.ratio,
-                     standardize, intercept,
-                     list(maxit   = maxit,
-                          eps_abs = abs.tol,
-                          eps_rel = rel.tol,
-                          rho     = rho),
-                     PACKAGE = "penreg")
-    } else if (family == "binomial")
-    {
-        res <- .Call("admm_lasso_logistic", x, y, lambda,
-                     nlambda, lambda.min.ratio,
-                     standardize, intercept,
-                     list(maxit   = maxit,
-                          eps_abs = abs.tol,
-                          eps_rel = rel.tol,
-                          rho     = rho),
-                     PACKAGE = "penreg")
-    }
+    res <- .Call("admm_lasso", 
+                 x, y, 
+                 family,
+                 lambda,
+                 nlambda, lambda.min.ratio,
+                 standardize, intercept,
+                 list(maxit      = maxit,
+                      eps_abs    = abs.tol,
+                      eps_rel    = rel.tol,
+                      irls_maxit = irls.maxit,
+                      irls_tol   = irls.tol,
+                      rho        = rho),
+                 PACKAGE = "penreg")
     res
 }
 

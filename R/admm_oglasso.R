@@ -72,8 +72,8 @@ admm.oglasso <- function(x, y,
                     lambda           = NULL, 
                     lambda.min.ratio = NULL, 
                     group.weights    = NULL,
-                    standardize      = TRUE, 
-                    intercept        = TRUE, 
+                    standardize      = FALSE, 
+                    intercept        = FALSE, 
                     rho              = NULL,
                     dynamic.rho      = TRUE,
                     maxit            = 500L,
@@ -116,7 +116,7 @@ admm.oglasso <- function(x, y,
     
     # add unpenalized group if intercept wanted for 
     # non-gaussian models
-    if (family != "gaussian")
+    if (family != "gaussian" & intercept)
     {
         group  <- rBind(0, group)
     }

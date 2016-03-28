@@ -112,7 +112,6 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     
     const int ngroups(as<int>(ngroups_));
     
-    
     // don't standardize if not linear model. 
     // fit intercept the dumb way if it is wanted
     bool fullbetamat = false;
@@ -146,7 +145,7 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
     // create C matrix
     //   C_{i,j} = 1 if y_i is a replicate of x_j
     //           = 0 otherwise 
-    Eigen::SparseMatrix<double,Eigen::RowMajor> C(Eigen::SparseMatrix<double,Eigen::RowMajor>(M, p));
+    Eigen::SparseMatrix<double,Eigen::RowMajor> C(Eigen::SparseMatrix<double,Eigen::RowMajor>(M, p + add));
     C.reserve(VectorXi::Constant(M,1));
     createC(C, group, M);
     
@@ -170,7 +169,7 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
                                               eps_abs, eps_rel);
         } else if (family(0) == "binomial")
         {
-            solver_tall = new ADMMogLassoLogisticTall(datX, datY, C, n, p, M, ngroups, 
+            solver_tall = new ADMMogLassoLogisticTall(datX, datY, C, n, p + add, M, ngroups, 
                                                       family, group_weights, group_idx, 
                                                       dynamic_rho, irls_tol, irls_maxit, 
                                                       eps_abs, eps_rel);
@@ -194,6 +193,7 @@ RcppExport SEXP admm_oglasso_dense(SEXP x_,
         }
          */
     }
+    
     
     if(nlambda < 1)
     {

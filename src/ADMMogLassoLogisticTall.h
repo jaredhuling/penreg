@@ -52,7 +52,6 @@ protected:
     
     Vector XY;                    // X'Y
     MatrixXd XX;                  // X'X
-    MatrixXd HH;                  // X'WX
     VectorXd CC;                  // C'C diagonal
     VectorXd Cbeta;               // C * beta
     VectorXd savedEigs;           // saved eigenvalues
@@ -369,6 +368,7 @@ public:
     {
         
         VectorXd beta_prev;
+        
         
         int i;
         int j;

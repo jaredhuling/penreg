@@ -6,9 +6,9 @@
 \usage{
 admm.lasso(x, y, lambda = numeric(0), nlambda = 100L,
   lambda.min.ratio = NULL, family = c("gaussian", "binomial"),
-  intercept = FALSE, standardize = FALSE, maxit = 5000L,
-  abs.tol = 1e-07, rel.tol = 1e-07, rho = NULL, irls.tol = 1e-05,
-  irls.maxit = 100L)
+  penalty.factor = NULL, intercept = FALSE, standardize = FALSE,
+  maxit = 5000L, abs.tol = 1e-07, rel.tol = 1e-07, rho = NULL,
+  irls.tol = 1e-05, irls.maxit = 100L)
 }
 \arguments{
 \item{x}{The design matrix}
@@ -30,6 +30,9 @@ when the program calculates its own \eqn{\lambda}
 (by setting \code{lambda = NULL}).}
 
 \item{family}{"gaussian" for least squares problems, "binomial" for binary response}
+
+\item{penalty.factor}{a vector with length equal to the number of columns in x to be multiplied by lambda. by default
+it is a vector of 1s}
 
 \item{intercept}{Whether to fit an intercept in the model. Default is \code{FALSE}.}
 

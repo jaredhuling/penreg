@@ -46,6 +46,7 @@ protected:
     double newton_tol;            // tolerance for newton iterations
     int newton_maxit;             // max # iterations for newton-raphson
     bool rho_unspecified;         // was rho unspecified? if so, we must set it
+    ArrayXd penalty_factor;       // penalty multiplication factors 
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
@@ -63,7 +64,7 @@ protected:
     
     
     
-    static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty)
+    static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty, const Vector &pen_fact)
     {
         int v_size = vec.size();
         res.setZero();
@@ -72,10 +73,12 @@ protected:
         const double *ptr = vec.data();
         for(int i = 0; i < v_size; i++)
         {
-            if(ptr[i] > penalty)
-                res.insertBack(i) = ptr[i] - penalty;
-            else if(ptr[i] < -penalty)
-                res.insertBack(i) = ptr[i] + penalty;
+            double total_pen = pen_fact[i] * penalty;
+            
+            if(ptr[i] > total_pen)
+                res.insertBack(i) = ptr[i] - total_pen;
+            else if(ptr[i] < -total_pen)
+                res.insertBack(i) = ptr[i] + total_pen;
         }
     }
     
@@ -93,7 +96,7 @@ protected:
     
     void next_beta_logistic(Vector &res)
     {
-        // this function doesn't work quite right
+        // this function is slooow
         res = main_beta;
         //LDLT solver_logreg;
         int maxit_newton = 100;
@@ -130,7 +133,7 @@ protected:
     virtual void next_gamma(SparseVector &res)
     {
         Vector vec = main_beta + adj_nu / rho;
-        soft_threshold(res, vec, lambda / rho);
+        soft_threshold(res, vec, lambda / rho, penalty_factor);
     }
     void next_residual(Vector &res)
     {
@@ -150,17 +153,17 @@ protected:
         // precompute LLT decomposition of (X'X + rho * I)
         solver.compute(matToSolve.selfadjointView<Eigen::Lower>());
     }
-    //void update_rho() {}
+    void update_rho() {}
     
     void compute_rho()
     {
         if (rho_unspecified)
         {
             MatOpSymLower<Double> op(XX);
-            Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 3);
+            Spectra::SymEigsSolver< Double, Spectra::LARGEST_ALGE, MatOpSymLower<Double> > eigs(&op, 1, 4);
             srand(0);
             eigs.init();
-            eigs.compute(100, 0.1);
+            eigs.compute(1000, 0.1);
             savedEigs = eigs.eigenvalues();
             rho = std::pow(savedEigs[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
         }
@@ -233,6 +236,7 @@ protected:
 public:
     ADMMLassoLogisticTall(ConstGenericMatrix &datX_, 
                           ConstGenericVector &datY_,
+                          ArrayXd &penalty_factor_,
                           double newton_tol_ = 1e-5,
                           int newton_maxit_ = 100,
                           double eps_abs_ = 1e-6,
@@ -244,6 +248,7 @@ public:
               newton_maxit(newton_maxit_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
+              penalty_factor(penalty_factor_),
               XY(datX.transpose() * datY),
               XX(datX_.rows(), datX_.cols()),
               lambda0(XY.cwiseAbs().maxCoeff())
@@ -328,6 +333,15 @@ public:
             
             // calculate Jacobian
             W = prob.array() * (1 - prob.array());
+            
+            // make sure no weights are too small
+            for (int kk = 0; kk < datX.rows(); ++kk)
+            {
+                if (W(i) < 1e-5) 
+                {
+                    W(i) = 1e-5;
+                }
+            }
             
             // compute X'WX
             XX = XtWX(datX, W);

@@ -41,7 +41,8 @@ protected:
     MatrixXd XX;                  // X'X
     LDLT solver;                  // matrix factorization
     VectorXd savedEigs;           // saved eigenvalues
-    bool rho_unspecified;          // was rho unspecified? if so, we must set it
+    bool rho_unspecified;         // was rho unspecified? if so, we must set it
+    ArrayXd penalty_factor;       // penalty multiplication factors 
     
     Scalar lambda;                // L1 penalty
     Scalar lambda0;               // minimum lambda to make coefficients all zero
@@ -59,7 +60,7 @@ protected:
     
     
     
-    static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty)
+    static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty, const Vector &pen_fact)
     {
         int v_size = vec.size();
         res.setZero();
@@ -68,10 +69,12 @@ protected:
         const double *ptr = vec.data();
         for(int i = 0; i < v_size; i++)
         {
-            if(ptr[i] > penalty)
-                res.insertBack(i) = ptr[i] - penalty;
-            else if(ptr[i] < -penalty)
-                res.insertBack(i) = ptr[i] + penalty;
+            double total_pen = pen_fact[i] * penalty;
+            
+            if(ptr[i] > total_pen)
+                res.insertBack(i) = ptr[i] - total_pen;
+            else if(ptr[i] < -total_pen)
+                res.insertBack(i) = ptr[i] + total_pen;
         }
     }
     
@@ -90,7 +93,7 @@ protected:
     virtual void next_gamma(SparseVector &res)
     {
         Vector vec = main_beta + adj_nu / rho;
-        soft_threshold(res, vec, lambda / rho);
+        soft_threshold(res, vec, lambda / rho, penalty_factor);
     }
     
     void next_residual(Vector &res)
@@ -177,7 +180,9 @@ protected:
     }
     
 public:
-    ADMMLassoTall(ConstGenericMatrix &datX_, ConstGenericVector &datY_,
+    ADMMLassoTall(ConstGenericMatrix &datX_, 
+                  ConstGenericVector &datY_,
+                  ArrayXd &penalty_factor_,
                   double eps_abs_ = 1e-6,
                   double eps_rel_ = 1e-6) :
     FADMMBase<Eigen::VectorXd, Eigen::SparseVector<double>, Eigen::VectorXd>
@@ -185,6 +190,7 @@ public:
               eps_abs_, eps_rel_),
               datX(datX_.data(), datX_.rows(), datX_.cols()),
               datY(datY_.data(), datY_.size()),
+              penalty_factor(penalty_factor_),
               XY(datX.transpose() * datY),
               XX(XtX(datX)),
               lambda0(XY.cwiseAbs().maxCoeff())

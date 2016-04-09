@@ -319,7 +319,7 @@ public:
         
         int i;
         int j;
-        for (int i = 0; i < newton_maxit; ++i)
+        for (i = 0; i < newton_maxit; ++i)
         {
             
             VectorXd W;

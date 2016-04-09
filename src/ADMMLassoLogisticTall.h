@@ -210,6 +210,12 @@ protected:
         return r;
     }
     
+    double sum_dev_resid(VectorXd &y, VectorXd &prob)
+    {
+        return 2 * ((y.array() * (y.array() / prob.array()).array().log() ) + 
+               ((1 - y.array()).array() * (  (1 - y.array()).array() / (1 - prob.array()).array()  ).array().log())).sum();
+    }
+    
     // Faster computation of epsilons and residuals
     double compute_eps_primal()
     {
@@ -316,7 +322,7 @@ public:
         for (int i = 0; i < newton_maxit; ++i)
         {
             
-            
+            dev0 = dev;
             VectorXd W;
             VectorXd prob;
             VectorXd grad;
@@ -344,6 +350,10 @@ public:
             
             // compute X'Wz
             grad = datX.adjoint() * (datY.array() - prob.array()).matrix();
+            
+            // not sure why the following doesn't work but the above, which seems
+            // wrong does work
+            //grad = datX.adjoint() * ( W.array() * (datY.array() - prob.array()).array()).matrix();
             XY = XX * main_beta + grad;
             
             // compute rho after X'WX is computed

@@ -322,7 +322,6 @@ public:
         for (int i = 0; i < newton_maxit; ++i)
         {
             
-            dev0 = dev;
             VectorXd W;
             VectorXd prob;
             VectorXd grad;

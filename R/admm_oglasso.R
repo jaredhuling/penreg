@@ -66,21 +66,21 @@
 #' bfit <- admm.oglasso(x = x, y = y, group = groups, family = "binomial")
 #' 
 admm.oglasso <- function(x, y, 
-                    group, 
-                    family           = c("gaussian", "binomial"), 
-                    nlambda          = 100L, 
-                    lambda           = NULL, 
-                    lambda.min.ratio = NULL, 
-                    group.weights    = NULL,
-                    standardize      = FALSE, 
-                    intercept        = FALSE, 
-                    rho              = NULL,
-                    dynamic.rho      = TRUE,
-                    maxit            = 500L,
-                    abs.tol          = 1e-5, 
-                    rel.tol          = 1e-5, 
-                    irls.tol         = 1e-5, 
-                    irls.maxit       = 100L) 
+                         group, 
+                         family           = c("gaussian", "binomial"), 
+                         nlambda          = 100L, 
+                         lambda           = NULL, 
+                         lambda.min.ratio = NULL, 
+                         group.weights    = NULL,
+                         standardize      = FALSE, 
+                         intercept        = FALSE, 
+                         rho              = NULL,
+                         dynamic.rho      = TRUE,
+                         maxit            = 500L,
+                         abs.tol          = 1e-5, 
+                         rel.tol          = 1e-5, 
+                         irls.tol         = 1e-5, 
+                         irls.maxit       = 100L) 
 {
     
     family <- match.arg(family)

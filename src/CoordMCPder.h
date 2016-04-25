@@ -149,7 +149,7 @@ protected:
             for (j = 0; j < nvars; ++j)
             {
                 double beta_prev = beta(j);
-                grad = datX.col(j).dot(resid_cur) / Xsq(j) + beta(j);
+                grad = datX.col(j).head(num_loss).dot(resid_cur) / Xsq(j) + beta(j);
                 
                 threshval = soft_threshold_mcp(grad, penalty_factor(j) * lambda / Xsq(j), gamma);
                 
@@ -158,7 +158,7 @@ protected:
                 if (beta_prev != threshval)
                 {
                     beta(j) = threshval;
-                    resid_cur -= (threshval - beta_prev) * datX.col(j);
+                    resid_cur -= (threshval - beta_prev) * datX.col(j).head(num_loss);
                 }
             }
         }
@@ -220,8 +220,8 @@ public:
               penalty_factor_size(penalty_factor_.size()),
               num_loss(num_loss_),
               resid_cur(datY_),  //assumes we start our beta estimate at 0 //
-              XY(datX.transpose() * datY),
-              Xsq(datX.array().square().colwise().sum()),
+              XY(datX.topRows(num_loss_).transpose() * datY.head(num_loss_)),
+              Xsq(datX.topRows(num_loss_).array().square().colwise().sum()),
               lambda0(XY.cwiseAbs().maxCoeff())
     {}
     
@@ -231,7 +231,7 @@ public:
     void init(double lambda_, double gamma_)
     {
         beta.setZero();
-        resid_cur = datY; //reset residual vector
+        resid_cur = datY.head(num_loss); //reset residual vector
         
         lambda = lambda_;
         gamma  = gamma_;

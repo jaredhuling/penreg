@@ -166,45 +166,6 @@ protected:
     }
     
     
-    // Calculate ||v1 - v2||^2 when v1 and v2 are sparse
-    static double diff_squared_norm(const SparseVector &v1, const SparseVector &v2)
-    {
-        const int n1 = v1.nonZeros(), n2 = v2.nonZeros();
-        const double *v1_val = v1.valuePtr(), *v2_val = v2.valuePtr();
-        const int *v1_ind = v1.innerIndexPtr(), *v2_ind = v2.innerIndexPtr();
-        
-        double r = 0.0;
-        int i1 = 0, i2 = 0;
-        while(i1 < n1 && i2 < n2)
-        {
-            if(v1_ind[i1] == v2_ind[i2])
-            {
-                double val = v1_val[i1] - v2_val[i2];
-                r += val * val;
-                i1++;
-                i2++;
-            } else if(v1_ind[i1] < v2_ind[i2]) {
-                r += v1_val[i1] * v1_val[i1];
-                i1++;
-            } else {
-                r += v2_val[i2] * v2_val[i2];
-                i2++;
-            }
-        }
-        while(i1 < n1)
-        {
-            r += v1_val[i1] * v1_val[i1];
-            i1++;
-        }
-        while(i2 < n2)
-        {
-            r += v2_val[i2] * v2_val[i2];
-            i2++;
-        }
-        
-        return r;
-    }
-    
     
 public:
     CoordMCPder(ConstGenericMatrix &datX_, 

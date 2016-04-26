@@ -48,7 +48,6 @@ protected:
     Scalar lambda0;               // minimum lambda to make coefficients all zero
     
     
-    
     // x -> Ax
     void A_mult (Vector &res, Vector &beta)  { res.swap(beta); }
     // y -> A'y
@@ -57,7 +56,6 @@ protected:
     void B_mult (Vector &res, SparseVector &gamma) { res = -gamma; }
     // ||c||_2
     double c_norm() { return 0.0; }
-    
     
     
     static void soft_threshold(SparseVector &res, const Vector &vec, const double &penalty, const Vector &pen_fact)

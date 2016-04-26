@@ -124,9 +124,7 @@ RcppExport SEXP coord_mcp_der(SEXP x_,
         nlambda = lambda.size();
     }
     
-    
-    
-    
+
     //SpMat beta(p + 1, nlambda);
     //beta.reserve(Eigen::VectorXi::Constant(nlambda, std::min(n, p)));
     
@@ -136,7 +134,6 @@ RcppExport SEXP coord_mcp_der(SEXP x_,
     List coef_results(ngamma);
     
     double ilambda = 0.0;
-    
     
     for (int g = 0; g < ngamma; g++) // loop over gamma values
     {

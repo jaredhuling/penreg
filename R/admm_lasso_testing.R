@@ -19,22 +19,32 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol 
     
 
     ## find scaling factor which equilibriates x'x
-    equ <- ruiz.equilibriate(xtx, eps1 = 1e-2, eps2 = 1e-2)
+    #equ <- ruiz.equilibriate(xtx, eps1 = 1e-2, eps2 = 1e-2)
     
+    #scaling <- sqrt(diag(solve(xtx)) + 0.00000001)
+    
+    scaling <- sqrt(apply(xtx, 2, function(xx) sqrt(max( abs(xx) ))))
+    
+    sc <- ssbin(xtx, maxit = 500)
+    scaling <- 1/sqrt(sc)
+    
+    #B <- (diag(1/(sc) )) %*% xtx %*% diag(1/(sc))
+    B <- (diag((scaling) )) %*% xtx %*% diag((scaling))
     
     ## if rho value is not supplied, 
     ## compute one that is good
     if (is.null(rho)) {
-        eigs <- eigs_sym(equ$B, k = 2, 
+        eigs <- eigs_sym(B, k = 2, 
                          which = "BE", 
                          opts = list(maxitr = 500, 
                                      tol = 1e-4))$values
         #rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
-        rho <- sqrt(eigs[1] * eigs[length(eigs)])
+        #eigs <- eigen(B)$values
+        rho <- sqrt(eigs[1] * (eigs[length(eigs)] + 1e-1) )
     }
     
     ## scale by inverse of scaling factor 
-    scaling <- 1/(drop(equ$d1)) 
+    #scaling <- 1/(drop(equ$d1)) 
     
     #scaling <- rep(2.5, length(scaling))
     
@@ -70,6 +80,24 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol 
          scaling = scaling)
 }
 
+ssbin <- function(A, eps = 1e-2, maxit = 100)
+{
+    n <- nrow(A)
+    p <- ncol(A)
+    d <- 1/sqrt(sqrt(apply(A, 2, function(xx) sqrt(max( abs(xx) )))))
+    d <- d / min(d)
+    
+    #d <- rep(1, n)
+    for (i in 1:maxit)
+    {
+        u <- runif(n)
+        s <- u / sqrt(d)
+        y <- A %*% s
+        omega <- 2 ^ (-max(min(floor(log2(i)) - 1, 4), 1))
+        d <- (1 - omega) * d / sum(d) + omega * y ^ 2 / sum(y ^ 2)
+    }
+    drop(1/sqrt(d))
+}
 
 ruiz.equilibriate <- function(A, pnorm = 2, eps1 = 1e-2, eps2 = 1e-2, maxit = 100, verbose = FALSE)
 {

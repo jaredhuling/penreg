@@ -1,4 +1,111 @@
 
+## admm for the lasso with matrix equilibriation-based constraint preconditioning
+admm.lasso.prec.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
+    require(Matrix)
+    require(rARPACK)
+    xtx <- crossprod(x)
+    xty <- crossprod(x, y)
+    loss.history <- rep(NA, maxit)
+    n <- length(y)
+    p <- ncol(x)
+    #lambda <- lambda * n
+    iters <- maxit
+    
+    if (length(lambda) > 1) {
+        warning("only works for one lambda value 
+                at a time now; using first lambda value")
+        lambda <- lambda[1]
+    }
+    
+
+    ## find scaling factor which equilibriates x'x
+    equ <- ruiz.equilibriate(xtx, eps1 = 1e-2, eps2 = 1e-2)
+    
+    
+    ## if rho value is not supplied, 
+    ## compute one that is good
+    if (is.null(rho)) {
+        eigs <- eigs_sym(equ$B, k = 2, 
+                         which = "BE", 
+                         opts = list(maxitr = 500, 
+                                     tol = 1e-4))$values
+        #rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
+        rho <- sqrt(eigs[1] * eigs[length(eigs)])
+    }
+    
+    ## scale by inverse of scaling factor 
+    scaling <- 1/(drop(equ$d1)) 
+    
+    #scaling <- rep(2.5, length(scaling))
+    
+    alpha <- z <- u <- numeric(p)
+    A <- as(xtx + rho * diag(scaling ^ 2), "Matrix")
+    
+    for (i in 1:maxit) {
+        q <- xty + rho * scaling ^ 2 * z - u * scaling
+        alpha <- as.vector(solve(A, q))
+        z.prev <- z
+        
+        #z <- sign(alpha + u) * pmax(abs(alpha + u) - lambda / rho, 0) / (1 - 1/gamma)
+        #z <- ifelse( abs(alpha + u) <= gamma * (lambda/rho), z, alpha + u)
+        
+        z <- soft.thresh(alpha + u / (rho * scaling), lambda / (rho * scaling ^ 2) )
+        
+        u <- u + rho * (scaling * drop(alpha - z))
+        loss.history[i] <- l1.loss.leastsquares(x, y, alpha, z, lambda)
+        
+        r_norm = sqrt(sum( (scaling * (alpha - z) )^2 ))
+        s_norm = sqrt(sum( (-rho * scaling * (z - z.prev))^2 ))
+        eps_pri = sqrt(p) * abs.tol + rel.tol * max(sqrt(sum( (scaling * alpha) ^ 2)), sqrt(sum((-scaling * z)^2 ) ))
+        eps_dual = sqrt(p) * abs.tol + rel.tol * sqrt(sum( (rho * scaling^2 * u)^2 ))
+        
+        
+        if (r_norm < eps_pri & s_norm < eps_dual) {
+            iters <- i
+            break
+        }
+    }
+    
+    list(beta=z, beta.aug = alpha, iters = iters, loss.hist = loss.history[!is.na(loss.history)],
+         scaling = scaling)
+}
+
+
+ruiz.equilibriate <- function(A, pnorm = 2, eps1 = 1e-2, eps2 = 1e-2, maxit = 100, verbose = FALSE)
+{
+    n <- nrow(A)
+    p <- ncol(A)
+    d1 <- rep(1, n)
+    d2 <- rep(1, p)
+    B <- A
+    colnorm <- apply(B, 2, function(xx) sqrt(sum(   xx ^2   )) )
+    rownorm <- apply(B, 1, function(xx) sqrt(sum(   xx ^2   )) )
+    
+    r1 <- r2 <- 1e99
+    
+    pnorm <- 2
+    iters <- maxit
+    for (i in 1:maxit)
+    {
+        r1.prev <- r1
+        r2.prev <- r2
+        d1 <- d1 * 1 / sqrt(rownorm) #apply(B, 1, function(xx) 1/sqrt( sqrt(sum(   xx ^2   ))  ) )
+        d2 <- d2 * (n/p) ^ (0.5 / pnorm) * 1 / sqrt(colnorm) #apply(B, 2, function(xx) 1/sqrt( sqrt(sum(   xx ^2   )) ) )
+        B <- diag(d1) %*% A %*% diag(d2)
+        colnorm <- apply(B, 2, function(xx) sqrt(sum(   xx ^2   )) )
+        rownorm <- apply(B, 1, function(xx) sqrt(sum(   xx ^2   )) )
+        
+        r1 <- max(rownorm) / min(rownorm)
+        r2 <- max(colnorm) / min(rownorm)
+        if (verbose) cat("r1", r1, ", r2", r2, "\n")
+        if (abs(r1 - r1.prev) <= eps1 & (r2 - r2.prev) <= eps2)
+        {
+            iters <- i
+            break
+        }
+    }
+    list(d1 = d1, d2 = d2, B = B, iters = iters)
+}
 
 admm.lasso.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
     require(Matrix)
@@ -24,10 +131,10 @@ admm.lasso.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol = 1e-
                          which = "BE", 
                          opts = list(maxitr = 500, 
                                      tol = 1e-4))$values
-        rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
-        
+        #rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
+        rho <- sqrt(eigs[1] * eigs[length(eigs)])
     }
-        
+    
     
     alpha <- z <- u <- numeric(p)
     A <- as(xtx + rho * diag(p), "Matrix")
@@ -57,7 +164,7 @@ admm.lasso.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol = 1e-
         }
     }
     
-    list(beta=z, iters = iters, loss.hist = loss.history[!is.na(loss.history)])
+    list(beta=z, beta.aud = alpha, iters = iters, loss.hist = loss.history[!is.na(loss.history)])
 }
 
 

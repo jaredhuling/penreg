@@ -37,13 +37,15 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
     
     
     ###works
-    scaling <- 1/sqrt(sc)
+    scaling <- 1/sqrt(sc) #1/sqrt(sc)
     scaling <- scaling / max(scaling)
     
     #B <- (diag(1/(sc) )) %*% xtx %*% diag(1/(sc))
     
     #WORKS
-    B <- (diag((scaling) )) %*% xtx %*% diag((scaling))
+    ###B <- (diag((scaling) )) %*% xtx %*% diag((scaling))
+    
+    B <- (diag((1/scaling) )) %*% xtx %*% diag((1/scaling))
     
     ## if rho value is not supplied, 
     ## compute one that is good

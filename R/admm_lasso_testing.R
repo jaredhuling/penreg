@@ -37,11 +37,9 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
     }
     
     
-    ###works
+    ### works
     scaling <- 1/sqrt(sc) #1/sqrt(sc)
     scaling <- scaling / max(scaling)
-    
-    #B <- (diag(1/(sc) )) %*% xtx %*% diag(1/(sc))
     
     #WORKS
     ###B <- (diag((scaling) )) %*% xtx %*% diag((scaling))
@@ -55,15 +53,13 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
                          which = "BE", 
                          opts = list(maxitr = 500, 
                                      tol = 1e-4))$values
+        ## old rho, not as good
         #rho <- eigs[1] ^ (1 / 3) * lambda ^ (2 / 3)
         #eigs <- eigen(B)$values
+        
         rho <- sqrt(eigs[1] * (eigs[length(eigs)] + 1e-1) )
     }
     
-    ## scale by inverse of scaling factor 
-    #scaling <- 1/(drop(equ$d1)) 
-    
-    #scaling <- rep(2.5, length(scaling))
     
     alpha <- z <- u <- numeric(p)
     A <- as(xtx + rho * diag(scaling ^ 2), "Matrix")
@@ -72,9 +68,6 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
         q <- xty + rho * scaling ^ 2 * z - u * scaling
         alpha <- as.vector(solve(A, q))
         z.prev <- z
-        
-        #z <- sign(alpha + u) * pmax(abs(alpha + u) - lambda / rho, 0) / (1 - 1/gamma)
-        #z <- ifelse( abs(alpha + u) <= gamma * (lambda/rho), z, alpha + u)
         
         z <- soft.thresh(alpha + u / (rho * scaling), lambda / (rho * scaling ^ 2) )
         

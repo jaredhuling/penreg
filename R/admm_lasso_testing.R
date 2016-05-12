@@ -19,19 +19,20 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
         lambda <- lambda[1]
     }
     
-
-    ## find scaling factor which equilibriates x'x
-    #equ <- ruiz.equilibriate(xtx, eps1 = 1e-2, eps2 = 1e-2)
     
-    #scaling <- sqrt(diag(solve(xtx)) + 0.00000001)
-    
-    scaling <- sqrt(apply(xtx, 2, function(xx) sqrt(max( abs(xx) ))))
+    ##  this scaler works okay
+    #scaling <- sqrt(apply(xtx, 2, function(xx) sqrt(max( abs(xx) ))))
     
     if (stochastic)
     {
+        ## often better than sbin,
+        ## but it is stochastic
         sc <- ssbin(xtx, maxit = 500)
     } else 
     {
+        ## good, but not usually as
+        ## good as ssbin, but will
+        ## give same scaler each time (deterministic)
         sc <- sbin(xtx, maxit = 100)
     }
     

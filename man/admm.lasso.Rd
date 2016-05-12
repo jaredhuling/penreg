@@ -7,8 +7,8 @@
 admm.lasso(x, y, lambda = numeric(0), nlambda = 100L,
   lambda.min.ratio = NULL, family = c("gaussian", "binomial"),
   penalty.factor = NULL, intercept = FALSE, standardize = FALSE,
-  maxit = 5000L, abs.tol = 1e-07, rel.tol = 1e-07, rho = NULL,
-  irls.tol = 1e-05, irls.maxit = 100L)
+  preconditioned = FALSE, maxit = 5000L, abs.tol = 1e-07,
+  rel.tol = 1e-07, rho = NULL, irls.tol = 1e-05, irls.maxit = 100L)
 }
 \arguments{
 \item{x}{The design matrix}

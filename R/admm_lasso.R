@@ -73,6 +73,7 @@ admm.lasso <- function(x,
                        penalty.factor   = NULL,
                        intercept        = FALSE,
                        standardize      = FALSE,
+                       preconditioned   = FALSE,
                        maxit            = 5000L,
                        abs.tol          = 1e-7,
                        rel.tol          = 1e-7,
@@ -152,22 +153,43 @@ admm.lasso <- function(x,
     rel.tol    <- as.numeric(rel.tol)
     rho        <- if(is.null(rho))  -1.0  else  as.numeric(rho)
     
-    res <- .Call("admm_lasso", 
-                 x, y, 
-                 family,
-                 lambda,
-                 nlambda, 
-                 lambda.min.ratio,
-                 penalty.factor,
-                 standardize, 
-                 intercept,
-                 list(maxit      = maxit,
-                      eps_abs    = abs.tol,
-                      eps_rel    = rel.tol,
-                      irls_maxit = irls.maxit,
-                      irls_tol   = irls.tol,
-                      rho        = rho),
-                 PACKAGE = "penreg")
+    if (preconditioned)
+    {
+        res <- .Call("admm_lasso_precond", 
+                     x, y, 
+                     family,
+                     lambda,
+                     nlambda, 
+                     lambda.min.ratio,
+                     penalty.factor,
+                     standardize, 
+                     intercept,
+                     list(maxit      = maxit,
+                          eps_abs    = abs.tol,
+                          eps_rel    = rel.tol,
+                          irls_maxit = irls.maxit,
+                          irls_tol   = irls.tol,
+                          rho        = rho),
+                     PACKAGE = "penreg")
+    } else 
+    {
+        res <- .Call("admm_lasso", 
+                     x, y, 
+                     family,
+                     lambda,
+                     nlambda, 
+                     lambda.min.ratio,
+                     penalty.factor,
+                     standardize, 
+                     intercept,
+                     list(maxit      = maxit,
+                          eps_abs    = abs.tol,
+                          eps_rel    = rel.tol,
+                          irls_maxit = irls.maxit,
+                          irls_tol   = irls.tol,
+                          rho        = rho),
+                     PACKAGE = "penreg")
+    }
     res
 }
 

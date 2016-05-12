@@ -96,6 +96,12 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
 
 ssbin <- function(A, eps = 1e-2, maxit = 100)
 {
+    
+    # ALGORITHMS FOR THE EQUILIBRATION OF MATRICES
+    # AND THEIR APPLICATION TO
+    # LIMITED-MEMORY QUASI-NEWTON METHODS
+    # thesis of Andrew Michael Bradley, 2010
+    
     n <- nrow(A)
     p <- ncol(A)
     d <- 1/sqrt(sqrt(apply(A, 2, function(xx) sqrt(max( abs(xx) )))))
@@ -115,6 +121,8 @@ ssbin <- function(A, eps = 1e-2, maxit = 100)
 
 sbin <- function(A, eps = 1e-2, maxit = 100)
 {
+    
+    # Scaling by Binormalization (Livne & Golub 2003)
     n <- nrow(A)
     p <- ncol(A)
     #d <- 1/sqrt(sqrt(apply(A, 2, function(xx) sqrt(max( abs(xx) )))))

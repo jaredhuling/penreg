@@ -1,6 +1,8 @@
 
 ## admm for the lasso with matrix equilibriation-based constraint preconditioning
-admm.lasso.prec.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol = 1e-5, maxit = 500L, gamma = 4) {
+admm.lasso.prec.R <- function(x, y, lambda, rho = NULL, 
+                              abs.tol = 1e-5, rel.tol = 1e-5, 
+                              maxit = 500L, gamma = 4, stochastic = TRUE) {
     require(Matrix)
     require(rARPACK)
     xtx <- crossprod(x)
@@ -25,10 +27,22 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL, abs.tol = 1e-5, rel.tol 
     
     scaling <- sqrt(apply(xtx, 2, function(xx) sqrt(max( abs(xx) ))))
     
-    sc <- ssbin(xtx, maxit = 500)
+    if (stochastic)
+    {
+        sc <- ssbin(xtx, maxit = 500)
+    } else 
+    {
+        sc <- sbin(xtx, maxit = 100)
+    }
+    
+    
+    ###works
     scaling <- 1/sqrt(sc)
+    scaling <- scaling / max(scaling)
     
     #B <- (diag(1/(sc) )) %*% xtx %*% diag(1/(sc))
+    
+    #WORKS
     B <- (diag((scaling) )) %*% xtx %*% diag((scaling))
     
     ## if rho value is not supplied, 
@@ -97,6 +111,69 @@ ssbin <- function(A, eps = 1e-2, maxit = 100)
         d <- (1 - omega) * d / sum(d) + omega * y ^ 2 / sum(y ^ 2)
     }
     drop(1/sqrt(d))
+}
+
+sbin <- function(A, eps = 1e-2, maxit = 100)
+{
+    n <- nrow(A)
+    p <- ncol(A)
+    #d <- 1/sqrt(sqrt(apply(A, 2, function(xx) sqrt(max( abs(xx) )))))
+    #d <- d / min(d)
+    
+    x <- rep(1, n)
+    
+    B <- A ^ 2
+    d <- diag(B)
+    beta <- drop(B %*% x)
+    avg <- sum(beta * x) / n
+    e <- 1
+    
+    std <- sqrt(sum((x * beta-avg)^2)/n)/avg
+    
+    
+    for (i in 1:maxit)
+    {
+        x_old <- x
+        
+        for (j in 1:n)
+        {
+            bi <- beta[j]
+            di <- d[j]
+            xi <- x[j]
+            c2 <- (n-1) * di
+            c1 <- (n-2)*(bi-di*xi)
+            c0 <- -di*xi^2 + 2*bi*xi - n*avg
+            if (-c0 < eps)
+            {
+                C = A
+                f <- rep(1, n)
+                avg_c = -1
+                G = -1
+                est_c = -1
+                break
+            } else
+            {
+                xi = (2*c0)/(-c1 - sqrt(c1*c1 - 4*c2*c0))
+            }
+            
+            delta = xi - x[j]
+            avg <- avg + (delta * crossprod(x, B[,j]) + delta*bi + di*delta^2)/n
+            beta = beta + delta*B[,j]
+            x[j] = xi
+        }
+        std_old = std
+        e_old = e
+        std = sqrt(sum((x * beta-avg)^2)/n)/avg
+        
+        e = sqrt(sum( (x-x_old)^2 ))/sqrt(sum(x ^ 2))
+        conv_factor = std/std_old
+        
+        
+    }
+    avg_c = (std/std_initial)^(1/i)
+    f = sqrt(x)
+    
+    drop(f )
 }
 
 ruiz.equilibriate <- function(A, pnorm = 2, eps1 = 1e-2, eps2 = 1e-2, maxit = 100, verbose = FALSE)

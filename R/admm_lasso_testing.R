@@ -2,7 +2,8 @@
 ## admm for the lasso with matrix equilibriation-based constraint preconditioning
 admm.lasso.prec.R <- function(x, y, lambda, rho = NULL, 
                               abs.tol = 1e-5, rel.tol = 1e-5, 
-                              maxit = 500L, gamma = 4, stochastic = TRUE) {
+                              maxit = 500L, gamma = 4, stochastic = TRUE,
+                              alpha = 1) {
     require(Matrix)
     require(rARPACK)
     xtx <- crossprod(x)
@@ -33,7 +34,7 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
         ## good, but not usually as
         ## good as ssbin, but will
         ## give same scaler each time (deterministic)
-        sc <- sbin(xtx, maxit = 100)
+        sc <- sbin(xtx, maxit = 50)
     }
     
     
@@ -61,22 +62,23 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
     }
     
     
-    alpha <- z <- u <- numeric(p)
+    beta <- z <- u <- numeric(p)
     A <- as(xtx + rho * diag(scaling ^ 2), "Matrix")
     
     for (i in 1:maxit) {
-        q <- xty + rho * scaling ^ 2 * z - u * scaling
-        alpha <- as.vector(solve(A, q))
+        q <- xty + rho * (scaling ^ 2 * z - u * scaling)
+        beta <- as.vector(solve(A, q))
         z.prev <- z
         
-        z <- soft.thresh(alpha + u / (rho * scaling), lambda / (rho * scaling ^ 2) )
+        beta.relax <- alpha * beta + (1 - alpha) * z
+        z <- soft.thresh(beta.relax + u / (scaling), lambda / (rho * scaling ^ 2) )
         
-        u <- u + rho * (scaling * drop(alpha - z))
-        loss.history[i] <- l1.loss.leastsquares(x, y, alpha, z, lambda)
+        u <- u + (scaling * drop(beta - z))
+        loss.history[i] <- l1.loss.leastsquares(x, y, beta, z, lambda)
         
-        r_norm = sqrt(sum( (scaling * (alpha - z) )^2 ))
+        r_norm = sqrt(sum( (scaling * (beta - z) )^2 ))
         s_norm = sqrt(sum( (-rho * scaling * (z - z.prev))^2 ))
-        eps_pri = sqrt(p) * abs.tol + rel.tol * max(sqrt(sum( (scaling * alpha) ^ 2)), sqrt(sum((-scaling * z)^2 ) ))
+        eps_pri = sqrt(p) * abs.tol + rel.tol * max(sqrt(sum( (scaling * beta) ^ 2)), sqrt(sum((-scaling * z)^2 ) ))
         eps_dual = sqrt(p) * abs.tol + rel.tol * sqrt(sum( (rho * scaling^2 * u)^2 ))
         
         
@@ -86,7 +88,7 @@ admm.lasso.prec.R <- function(x, y, lambda, rho = NULL,
         }
     }
     
-    list(beta=z, beta.aug = alpha, iters = iters, loss.hist = loss.history[!is.na(loss.history)],
+    list(beta=z, beta.aug = beta, iters = iters, loss.hist = loss.history[!is.na(loss.history)],
          scaling = scaling)
 }
 

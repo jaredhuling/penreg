@@ -103,7 +103,7 @@ RcppExport SEXP admm_genlasso(SEXP x_,
     ADMMGenLassoTall *solver_tall;
     //ADMMGenLassoWide *solver_wide;
     
-    if(n > p)
+    if(n > p || p < 5000)
     {
         solver_tall = new ADMMGenLassoTall(datX, datY, D, eps_abs, eps_rel);
     }
@@ -115,7 +115,7 @@ RcppExport SEXP admm_genlasso(SEXP x_,
     if(nlambda < 1)
     {
         double lmax = 0.0;
-        if(n > p)
+        if(n > p || p < 5000)
         {
             lmax = solver_tall->get_lambda_zero() / n * datstd.get_scaleY();
         }
@@ -141,7 +141,7 @@ RcppExport SEXP admm_genlasso(SEXP x_,
     for(int i = 0; i < nlambda; i++)
     {
         ilambda = lambda[i] * n / datstd.get_scaleY();
-        if(n > p)
+        if(n > p || p < 5000)
         {
             if(i == 0)
                 solver_tall->init(ilambda, rho);
@@ -175,7 +175,7 @@ RcppExport SEXP admm_genlasso(SEXP x_,
         }
     }
     
-    if(n > p)
+    if(n > p || p < 5000)
     {
         delete solver_tall;
     }

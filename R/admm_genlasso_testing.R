@@ -336,3 +336,96 @@ alin <- function(x, y, D, lambda, gamma = 0.2, maxit = 100, tol = 1e-5)
 }
 
 
+
+
+#' @export
+admm.restart.genlasso.R <- function(x, y, D, lambda, rho = NULL, maxit = 100, tol = 1e-5)
+{
+    xtx <- crossprod(x) / n
+    xty <- crossprod(x, y) / n
+    dtd <- crossprod(D)
+    
+    n <- length(y)
+    p <- ncol(x)
+    npen <- nrow(D)
+    
+    nlam <- length(lambda)
+    
+    ## if rho value is not supplied, 
+    ## compute one that is good
+    if (is.null(rho)) {
+        eigs <- eigs_sym(xtx, k = 2, 
+                         which = "BE", 
+                         opts = list(maxitr = 500, 
+                                     tol = 1e-4))$values
+        
+        
+    }
+    
+    alpha <- numeric(p)
+    z <- u <- u.hat <- z.hat <- rep(0, npen)
+    
+    
+    
+    ak <- 1
+    ck <- 1e10
+    eta <- 0.99
+    
+    beta.mat <- array(NA, dim = c(p, nlam))
+    z.mat    <- array(NA, dim = c(npen, nlam))
+    iter.list <- numeric(nlam)
+    for (l in 1:nlam)
+    {
+        iters <- maxit
+        rho <- eigs[1] ^ (1 / 3) * lambda[l] ^ (2 / 3)
+        A <- as(xtx + 1 * rho * dtd, "Matrix")
+        
+        u.hat <- z.hat <- rep(0, npen)
+    
+        for (i in 1:maxit)
+        {
+            q     <- xty + drop(crossprod(D, 1 * rho * z.hat - u.hat))
+            alpha <- as.vector(solve(A, q))
+            z.prev <- z
+            
+            Dalpha <- D %*% alpha
+            
+            z <- soft.thresh(Dalpha + u.hat / rho, lambda[l] / rho)
+            
+            u.prev <- u
+            u <- u.hat + rho * (Dalpha - z)
+            
+            ck.prev <- ck
+            ck <- sum( (u - u.hat) ^ 2 ) / rho + rho * sum((z - z.hat) ^ 2)
+            
+            if (ck < eta * ck.prev)
+            {
+                ak.prev <- 1 * ak
+                ak <- (1 + sqrt(1 + 4 * ak ^ 2)) * 0.5
+                u.hat <- u + (ak.prev / ak) * (u - u.prev)
+                z.hat <- z + (ak.prev / ak) * (z - z.prev)
+            } else 
+            {
+                ak <- 1
+                u.hat  <- u.prev
+                z.hat <- z.prev
+                ck <- ck.prev / eta
+            }
+            
+            
+            if (i > 2 & all(abs(z - z.prev) < tol))
+            {
+                iters <- i
+                break
+            }
+        }
+        
+        beta.mat[,l] <- alpha
+        z.mat[,l]    <- z.hat
+        
+        iter.list[l] <- iters
+    }
+    list(beta = beta.mat, iters = iter.list, z = z.mat, lambda = lambda)
+}
+
+

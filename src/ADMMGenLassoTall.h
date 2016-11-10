@@ -226,6 +226,7 @@ public:
             
             float lam_fact = datX.rows() * lambda;
             //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+            /*
             if (lam_fact < evals[1])
             {
                 rho = std::sqrt(evals[1] * std::pow(lam_fact, 1.35));
@@ -236,6 +237,8 @@ public:
             {
                 rho = std::pow(lam_fact, 1.05);
             }
+             */
+            rho = std::pow(savedEigs[0], 0.333333) * std::pow(lam_fact, 0.666666);
         } else {
             rho_unspecified = false;
         }
@@ -264,10 +267,14 @@ public:
     {
         lambda = lambda_;
         
+        //adj_gamma.setZero();
+        //adj_nu.setZero();
+        
         if (rho_unspecified)
         {
             float lam_fact = lambda;
             //rho = std::pow(evals[0], 1.0 / 3) * std::pow(lambda, 2.0 / 3);
+            /*
             if (lam_fact < savedEigs[1])
             {
                 rho = std::sqrt(savedEigs[1] * std::pow(lam_fact * 4, 1.35));
@@ -278,6 +285,8 @@ public:
             {
                 rho = std::pow(lam_fact, 1.05);
             }
+             */
+            rho = std::pow(savedEigs[0], 0.333333) * std::pow(lam_fact, 0.666666);
             
         }
         

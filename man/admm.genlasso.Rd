@@ -84,4 +84,3 @@ res <- admm.genlasso(x, y, D = D)
 
 \url{http://stanford.edu/~boyd/admm.html}
 }
-

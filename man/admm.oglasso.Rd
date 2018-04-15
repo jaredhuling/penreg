@@ -85,4 +85,3 @@ y <- rbinom(n.obs, 1, prob = 1 / (1 + exp(-x \%*\% true.beta)))
 bfit <- admm.oglasso(x = x, y = y, group = groups, family = "binomial")
 
 }
-

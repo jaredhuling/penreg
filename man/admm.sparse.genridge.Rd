@@ -87,4 +87,3 @@ res <- admm.sparse.genridge(x, y, D = D, alpha = 0.5)
 \references{
 \url{http://stanford.edu/~boyd/admm.html}
 }
-

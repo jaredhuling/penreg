@@ -38,4 +38,3 @@ res <- cv.cd.mcp(x, y, gamma = 4)
 
 
 }
-

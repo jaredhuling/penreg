@@ -122,6 +122,13 @@ admm.genlasso2.R <- function(x, y, D, lambda, rho = NULL, abs.tol = 1e-5, rel.to
         Dalpha <- D %*% alpha
         z <- soft.thresh(Dalpha + u / rho, lambda / rho)
         
+        #if (i == 2) 
+        #{
+        #    print(Dalpha_prev[1:5])
+        #    print(Dalpha[1:5])
+        #}
+            
+        
         deltau <- rho * (Dalpha - z)
         if (i > 1) deltaH <- Dalpha - Dalpha_prev
         
@@ -129,7 +136,16 @@ admm.genlasso2.R <- function(x, y, D, lambda, rho = NULL, abs.tol = 1e-5, rel.to
         {
             crossHu <- -sum(drop(deltau) * drop(deltaH))
             alphaSD <- sum(deltau ^ 2) / crossHu
-            alphaMG <- crossHu / sum(deltaH ^ 2)
+            ssH <- sum(deltaH ^ 2)
+            
+            if (ssH == 0)
+            {
+                alphaMG <- 0
+            } else
+            {
+                alphaMG <- crossHu / ssH
+            }
+                
             
             if (2 * alphaMG > alphaSD)
             {
@@ -146,7 +162,16 @@ admm.genlasso2.R <- function(x, y, D, lambda, rho = NULL, abs.tol = 1e-5, rel.to
         {
             crossHz <- sum(drop(deltau) * drop(deltaG))
             betaSD <- sum(deltau ^ 2) / crossHz
-            betaMG <- crossHz / sum(deltaG ^ 2)
+            
+            ssG <- sum(deltaG ^ 2)
+            if (ssG == 0)
+            {
+                betaMG <- 0
+            } else
+            {
+                betaMG <- crossHz / ssG
+            }
+                
             
             if (2 * betaMG > betaSD)
             {
@@ -156,8 +181,23 @@ admm.genlasso2.R <- function(x, y, D, lambda, rho = NULL, abs.tol = 1e-5, rel.to
                 betak <- betaSD - betaMG * 0.5
             }
             
-            alphaCor <- crossHu / (sqrt(sum(deltaH ^ 2)) * sum(deltau ^ 2))
-            betaCor  <- crossHz / (sqrt(sum(deltaG ^ 2)) * sum(deltau ^ 2))
+            if (ssH > 0)
+            {
+                alphaCor <- crossHu / (sqrt(ssH) * sqrt(sum(deltau ^ 2)))   
+            } else
+            {
+                alphaCor <- 0
+            }
+                
+            if (ssG > 0)
+            {
+                betaCor  <- crossHz / (sqrt(ssG) * sqrt(sum(deltau ^ 2)))
+            } else
+            {
+                betaCor <- 0
+            }
+            
+            #cat("alpha cor:", alphaCor, "betaCor:", betaCor, "crossHu", crossHu, "crossHz", crossHz, "deltaHss", sum(deltaH ^ 2), "deltaGss", sum(deltaG ^ 2), "\n")
             
             rhoupdate <- TRUE
             if (alphaCor > epsCor & betaCor > epsCor)
@@ -173,6 +213,8 @@ admm.genlasso2.R <- function(x, y, D, lambda, rho = NULL, abs.tol = 1e-5, rel.to
             {
                 rhoupdate <- FALSE
             }
+            
+            
             
             if (rhoupdate)
             {

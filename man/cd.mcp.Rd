@@ -76,4 +76,3 @@ res <- cd.mcp(x, y, gamma = 4)
 
 
 }
-

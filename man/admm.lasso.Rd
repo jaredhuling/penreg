@@ -91,4 +91,3 @@ bfit <- admm.lasso(x = x, y = y, family = "binomial")
 \references{
 \url{http://stanford.edu/~boyd/admm.html}
 }
-

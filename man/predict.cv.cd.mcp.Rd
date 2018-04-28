@@ -45,4 +45,3 @@ res <- cd.mcp(x, y, gamma = 4)
 coefs <- predict(res, type = "coef")
 
 }
-
